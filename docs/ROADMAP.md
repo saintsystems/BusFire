@@ -43,11 +43,13 @@ restoring the conditional model is the headline goal.
 
 ## P1 — packaging & API for third parties
 
-- [x] **Decouple from storage / Hangfire bootstrapping.** *Done (2026-06-16):* added a storage-agnostic
-      `AddBusFire(cfg => ...)` overload that registers handlers/bus/registry/failure filter but does **not**
-      touch Hangfire. The host owns `AddHangfire` + storage (e.g. PostgreSQL) and calls
-      `config.UseBusFire(provider)` to apply BusFire's serializer settings + failure filter. The old
-      `AddBusFire(BusOptions, cfg)` remains as a SQL-Server batteries-included convenience overload.
+- [x] **Decouple from storage / Hangfire bootstrapping.** *Done (2026-06-16):* `AddBusFire(cfg => ...)` is
+      storage-agnostic — registers handlers/bus/registry/failure filter but does **not** touch Hangfire; the
+      host owns `AddHangfire` + storage (e.g. PostgreSQL) and calls `config.UseBusFire(provider)` to apply
+      BusFire's serializer + filter. A convenience overload `AddBusFire(cfg, hangfire => hangfire.UseXxxStorage(...))`
+      lets BusFire own the `AddHangfire` call while the host supplies only storage. The SQL-Server-specific
+      overload and the `Hangfire.SqlServer` dependency were dropped (now `Hangfire.Core` + `Hangfire.AspNetCore`),
+      and `BusOptions` slimmed to just `Queues`.
 - [ ] **Remove the static global config** (`BusFireGlobalConfiguration.Configuration`).
       Process-wide mutable state breaks test isolation and multiple-instance scenarios.
 - [ ] **Restore `IQueueable`** (self-describing queue name + delay, with `OnQueue`/`WithDelay`),

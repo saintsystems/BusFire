@@ -28,9 +28,10 @@ design (from Laravel's `ShouldQueue`) was better — run inline unless the messa
 3. **Dual-write / no outbox.** `Enqueue` writes on Hangfire's own connection and commits immediately
    — it does not enlist in the caller's business DB transaction, so you can enqueue then roll back
    (or vice versa). Enlist in an ambient transaction, or document that an outbox is the user's job.
-4. **Storage + Hangfire setup are baked in.** `AddBusFire` calls `AddHangfire(...UseSqlServerStorage...)`
-   itself, colliding with hosts that already configure Hangfire. Invert: consumer owns Hangfire +
-   storage; BusFire registers handlers + bridge + serializer. Also unlocks non-SQL-Server storage.
+4. ~~**Storage + Hangfire setup are baked in.**~~ **Resolved (2026-06-16).** `AddBusFire(cfg => ...)` is now
+   storage-agnostic (host owns Hangfire + storage and calls `config.UseBusFire(provider)`); an optional
+   convenience overload takes a storage delegate. The SQL-Server-specific path and the `Hangfire.SqlServer`
+   dependency were dropped (now references `Hangfire.Core` + `Hangfire.AspNetCore`). Unlocks PostgreSQL etc.
 5. **Static mutable global config** (`BusFireGlobalConfiguration.Configuration`) breaks test isolation
    and multiple-instance scenarios.
 6. **Serialized `CancellationToken`** is meaningless on the consumer side; rely on Hangfire's injected token.

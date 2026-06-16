@@ -1,5 +1,4 @@
 using Hangfire;
-using Hangfire.SqlServer;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Linq;
@@ -21,9 +20,10 @@ namespace BusFire.Infrastructure
         ///     config.UseBusFire(provider);
         /// });
         /// </code>
-        /// This is the storage-agnostic entry point; use it for PostgreSQL or any host that already owns its
-        /// Hangfire setup. For a batteries-included SQL Server setup, use the
-        /// <see cref="AddBusFire(IServiceCollection, BusOptions, Action{BusFireServiceConfiguration})"/> overload.
+        /// Use this when the host already owns its Hangfire setup. To let BusFire own the
+        /// <c>AddHangfire</c> call instead, use the
+        /// <see cref="AddBusFire(IServiceCollection, Action{BusFireServiceConfiguration}, Action{IGlobalConfiguration})"/>
+        /// overload and just pass your storage.
         /// </summary>
         public static IServiceCollection AddBusFire(this IServiceCollection services, Action<BusFireServiceConfiguration> configuration)
 		{
@@ -63,27 +63,27 @@ namespace BusFire.Infrastructure
 		}
 
         /// <summary>
-        /// Batteries-included convenience overload: registers BusFire (via the storage-agnostic
+        /// Convenience overload: registers BusFire (via the storage-agnostic
         /// <see cref="AddBusFire(IServiceCollection, Action{BusFireServiceConfiguration})"/> overload) and
-        /// also configures Hangfire with SQL Server storage from <paramref name="options"/>. Use this only
-        /// when you want BusFire to own the Hangfire/SQL Server bootstrap; for PostgreSQL or any host that
-        /// already configures Hangfire, use the storage-agnostic overload and call <c>config.UseBusFire(provider)</c>
-        /// inside your own <c>AddHangfire(...)</c>.
+        /// also owns the <c>AddHangfire</c> call, applying BusFire's serializer + failure filter for you. The
+        /// host supplies only the storage via <paramref name="configureStorage"/> — any Hangfire storage works:
+        /// <code>
+        /// services.AddBusFire(
+        ///     cfg => cfg.RegisterServicesFromAssemblies(...),
+        ///     hangfire => hangfire.UsePostgreSqlStorage(connectionString));
+        /// </code>
+        /// Use this when you want BusFire to bootstrap Hangfire. Do not also call <c>AddHangfire</c> yourself —
+        /// if the host already owns Hangfire, use the storage-agnostic overload instead.
         /// </summary>
-        public static IServiceCollection AddBusFire(this IServiceCollection services, BusOptions options, Action<BusFireServiceConfiguration> configuration)
+        public static IServiceCollection AddBusFire(this IServiceCollection services, Action<BusFireServiceConfiguration> configuration, Action<IGlobalConfiguration> configureStorage)
 		{
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            if (configureStorage == null) throw new ArgumentNullException(nameof(configureStorage));
 
             services.AddBusFire(configuration);
 
             services.AddHangfire((provider, config) =>
             {
-                config.UseSqlServerStorage(options.ConnectionStringOrName,
-					new SqlServerStorageOptions()
-					{
-						SchemaName = options.SchemaName,
-					});
-
+                configureStorage(config);
                 config.UseBusFire(provider);
 			});
 

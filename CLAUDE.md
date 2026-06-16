@@ -40,7 +40,7 @@ Read `Bus.cs`, `Infrastructure/HangfireBridge.cs`, and `BusInternal.cs` together
 `Infrastructure/ServiceCollectionExtensions.cs`:
 
 - **`AddBusFire(cfg => cfg.RegisterServicesFromAssemblies(...))`** (storage-agnostic, primary) — on every app that produces or consumes. Scans assemblies for handlers/behaviors (`ServiceRegistrar.cs`), builds the `IMessageTypeRegistry`, registers `IBus`/`ISender`/`IPublisher` and the failure filter. Does **not** touch Hangfire — the host owns `AddHangfire`/storage and must call `config.UseBusFire(provider)` inside it (applies serializer settings + filter). Throws if no assemblies supplied.
-- **`AddBusFire(busOptions, cfg => ...)`** — SQL Server batteries-included convenience overload: calls the storage-agnostic overload, then `AddHangfire(...UseSqlServerStorage...)` + `UseBusFire(provider)`.
+- **`AddBusFire(cfg => ..., hangfire => hangfire.UseXxxStorage(...))`** — convenience overload: calls the storage-agnostic overload, then owns the `AddHangfire` call (`configureStorage(config)` + `UseBusFire(provider)`). Host supplies storage only; no SQL hardcoding. Don't also call `AddHangfire` separately.
 - **`AddBusFireServer()`** — only on apps that should process jobs (`AddHangfireServer`); queues come from `BusOptions.Queues`.
 
 `BusFireServiceConfiguration` (`Infrastructure/BusFireServiceConfiguration.cs`) is the `cfg` builder: handler assemblies, `IEventPublisher`, `IFailureHandler`, lifetime, behaviors, exception strategy. Note `BusFireGlobalConfiguration.Configuration` is a static global (roadmap: remove).

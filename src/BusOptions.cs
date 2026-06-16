@@ -2,12 +2,7 @@ namespace BusFire
 {
 	public class BusOptions
 	{
-		public string ConnectionStringOrName { get; set; } = "BusFire";
-
-		public string SchemaName { get; set; } = "HangFire";
-
-		public string DashboardPath { get; set; } = "/hangfire";
-
+		/// <summary>The Hangfire queues this server should process. Used by <c>AddBusFireServer</c>.</summary>
 		public string[] Queues { get; set; } = {"default"};
 	}
 }

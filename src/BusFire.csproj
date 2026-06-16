@@ -32,9 +32,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Faithful to the original dependency set; storage decoupling is a roadmap item. -->
-    <PackageReference Include="Hangfire" Version="1.8.11" />
+    <!-- Storage-agnostic: reference Hangfire.Core (+ the ASP.NET Core DI extensions) only, NOT the
+         Hangfire metapackage, so consumers aren't forced to pull in Hangfire.SqlServer. The host picks
+         its own storage package (e.g. Hangfire.PostgreSql). Newtonsoft is used directly by the serializer. -->
+    <PackageReference Include="Hangfire.Core" Version="1.8.11" />
     <PackageReference Include="Hangfire.AspNetCore" Version="1.8.11" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
   </ItemGroup>
 

@@ -48,12 +48,13 @@ services.AddHangfire((provider, config) =>
 });
 ```
 
-> **Batteries-included SQL Server shortcut:** if you want BusFire to own the Hangfire/SQL Server bootstrap, use the convenience overload instead — it configures Hangfire + SQL Server storage for you:
+> **Let BusFire own the Hangfire bootstrap:** if the host doesn't already configure Hangfire, use the convenience overload — BusFire makes the `AddHangfire` call and applies its serializer + filter for you; you just supply the storage (any storage, no SQL lock-in):
 > ```csharp
 > services.AddBusFire(
->     new BusOptions { ConnectionStringOrName = "BusFire" },
->     cfg => cfg.RegisterServicesFromAssemblyContaining<SendWelcomeEmailHandler>());
+>     cfg => cfg.RegisterServicesFromAssemblyContaining<SendWelcomeEmailHandler>(),
+>     hangfire => hangfire.UsePostgreSqlStorage(connectionString));
 > ```
+> Don't also call `AddHangfire` yourself when using this overload.
 
 Register on the **consumer** (the app that should process jobs):
 
