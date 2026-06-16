@@ -88,20 +88,17 @@ namespace BusFire
 
     public interface ISender
     {
-        Task Send(ICommand command, CancellationToken cancellationToken = default, string queue = "default");
+        // queue == null means "not specified": fall back to the message's IQueueable.Queue, else "default".
+        Task Send(ICommand command, CancellationToken cancellationToken = default, string? queue = null);
 
-        //Task Send(ICommand command, TimeSpan delay, string queue = "default");
-
-        Task Defer(ICommand command, TimeSpan delay, CancellationToken cancellationToken = default, string queue = "default");
+        Task Defer(ICommand command, TimeSpan delay, CancellationToken cancellationToken = default, string? queue = null);
     }
 
     public interface IPublisher
     {
-        Task Publish(IEvent @event, CancellationToken cancellationToken = default, string queue = "default");
+        Task Publish(IEvent @event, CancellationToken cancellationToken = default, string? queue = null);
 
-        //Task Publish(IEvent @event, TimeSpan delay, string queue = "default");
-
-        Task Defer(IEvent @event, TimeSpan delay, CancellationToken cancellationToken = default, string queue = "default");
+        Task Defer(IEvent @event, TimeSpan delay, CancellationToken cancellationToken = default, string? queue = null);
     }
 
 }

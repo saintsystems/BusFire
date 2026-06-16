@@ -3,6 +3,9 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <LangVersion>latest</LangVersion>
+    <!-- Enable nullable reference-type annotations (the `?` syntax) without turning on flow warnings,
+         legitimizing the `string?`/`Type?` annotations carried over from the original. -->
+    <Nullable>annotations</Nullable>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
   </PropertyGroup>
 

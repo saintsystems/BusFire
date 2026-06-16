@@ -50,10 +50,14 @@ restoring the conditional model is the headline goal.
       lets BusFire own the `AddHangfire` call while the host supplies only storage. The SQL-Server-specific
       overload and the `Hangfire.SqlServer` dependency were dropped (now `Hangfire.Core` + `Hangfire.AspNetCore`),
       and `BusOptions` slimmed to just `Queues`.
-- [ ] **Remove the static global config** (`BusFireGlobalConfiguration.Configuration`).
-      Process-wide mutable state breaks test isolation and multiple-instance scenarios.
-- [ ] **Restore `IQueueable`** (self-describing queue name + delay, with `OnQueue`/`WithDelay`),
-      ported from Kwik.Bus, as an alternative to per-call `queue`/delay arguments.
+- [x] **Remove the static global config** (`BusFireGlobalConfiguration.Configuration`). *Done (2026-06-16):*
+      `AddBusFire` now builds a fresh `BusFireServiceConfiguration` per call; the static class is gone.
+- [x] **Restore `IQueueable`.** *Done (2026-06-16):* added `IQueueable : IShouldQueue` with **read-only**
+      `Queue`/`Delay` getters (getters may compute, the .NET equivalent of Laravel `viaQueue()`/`withDelay()`).
+      Implementing it implies queueing; the bus reads `Queue`/`Delay` off the message. Per-call `queue` is now
+      nullable so precedence is call-arg › `IQueueable` › `"default"`; an explicit `Defer(delay)` overrides
+      `IQueueable.Delay`. Read-only (not the original mutable `OnQueue`/`WithDelay`) to keep messages immutable
+      and stay netstandard2.0-safe (no default interface methods). Runtime `shouldQueue()` deliberately skipped.
 - [ ] **Multi-target** `netstandard2.0;net8.0;net9.0`; drop `LangVersion=preview` (already set
       to `latest`) and confirm reproducible builds.
 - [ ] **Add SourceLink** (`Microsoft.SourceLink.GitHub`) and validate the symbol package.

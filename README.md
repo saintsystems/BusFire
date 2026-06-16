@@ -77,6 +77,14 @@ A pure producer calls `AddBusFire` only; the worker that runs handlers also call
 - **`ICommand` / `ICommandHandler<T>`** — one handler per command.
 - **`IEvent` / `IEventHandler<T>`** — many handlers per event.
 - **`IShouldQueue`** — marker a message implements to opt into durable queued dispatch; without it, dispatch runs in-process.
+- **`IQueueable : IShouldQueue`** — opt into queueing *and* declare routing: read-only `Queue` and `Delay` getters (which may be computed). Precedence is per-call argument › `IQueueable` › default. Example:
+  ```csharp
+  public record SendInvoice(int Id) : ICommand, IQueueable
+  {
+      public string? Queue => "billing";
+      public TimeSpan? Delay => TimeSpan.FromMinutes(5);
+  }
+  ```
 - **`[MessageName("...")]`** — pins a message's stable logical name on the wire so namespace/assembly renames don't break in-flight jobs.
 - **Pipeline behaviors** — `ICommandPreProcessor`, `ICommandPostProcessor`, `ICommandExceptionHandler`, `ICommandExceptionAction`, `IPipelineBehavior`.
 - **`IFailureHandler`** — invoked when a job exhausts retries and lands in the failed state (wired via `NotifyOnFailureAttribute`).

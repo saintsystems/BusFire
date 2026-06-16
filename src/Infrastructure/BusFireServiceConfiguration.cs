@@ -9,11 +9,6 @@ using System.ComponentModel;
 
 namespace BusFire.Infrastructure
 {
-    public class BusFireGlobalConfiguration
-    {
-        public static BusFireServiceConfiguration Configuration { get; } = new BusFireServiceConfiguration();
-    }
-
     public class BusFireServiceConfiguration
 	{
 		public Func<Type, bool> TypeEvaluator { get; set; } = t => true;
