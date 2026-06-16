@@ -25,16 +25,13 @@ namespace BusFire
         Task Handle(TEvent @event, CancellationToken cancellationToken);
 	}
 
+	// BusFire's public surface is fire-and-forget: commands and events return no value. Request/response
+	// (ICommand<TResponse>) is intentionally not offered — it can't be honored on the durable-queue path,
+	// where there is no caller to return a value to. See docs/ROADMAP.md (P1: "Decide the surface").
 	public interface ICommand
 	{
 
 	}
-
-	public interface ICommand<out TResponse>
-	{
-
-	}
-
 
 	public interface ICommandHandler<in TCommand> where TCommand : ICommand
 	{

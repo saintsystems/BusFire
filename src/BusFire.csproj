@@ -1,7 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <!-- netstandard2.0 is required for .NET Framework 4.8 consumers; net8.0 (LTS) gives modern
+         (net8/9/10) apps a native asset. Keep netstandard2.0 forever. -->
+    <TargetFrameworks>netstandard2.0;net8.0</TargetFrameworks>
     <LangVersion>latest</LangVersion>
     <!-- Enable nullable reference-type annotations (the `?` syntax) without turning on flow warnings,
          legitimizing the `string?`/`Type?` annotations carried over from the original. -->
@@ -32,6 +34,8 @@
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <Deterministic>true</Deterministic>
+    <!-- Set ContinuousIntegrationBuild=true in CI for fully deterministic, SourceLink-correct builds. -->
   </PropertyGroup>
 
   <ItemGroup>
@@ -41,6 +45,11 @@
     <PackageReference Include="Hangfire.Core" Version="1.8.11" />
     <PackageReference Include="Hangfire.AspNetCore" Version="1.8.11" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="all" />
+  </ItemGroup>
+
+  <!-- Microsoft.CSharp (dynamic support) is in-box on net8.0; only netstandard2.0/net48 needs the package. -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
     <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
   </ItemGroup>
 

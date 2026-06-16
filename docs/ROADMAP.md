@@ -58,11 +58,16 @@ restoring the conditional model is the headline goal.
       nullable so precedence is call-arg › `IQueueable` › `"default"`; an explicit `Defer(delay)` overrides
       `IQueueable.Delay`. Read-only (not the original mutable `OnQueue`/`WithDelay`) to keep messages immutable
       and stay netstandard2.0-safe (no default interface methods). Runtime `shouldQueue()` deliberately skipped.
-- [ ] **Multi-target** `netstandard2.0;net8.0;net9.0`; drop `LangVersion=preview` (already set
-      to `latest`) and confirm reproducible builds.
-- [ ] **Add SourceLink** (`Microsoft.SourceLink.GitHub`) and validate the symbol package.
-- [ ] **Decide the surface:** void fire-and-forget only, or also request/response
-      (`ICommand<TResponse>`, declared but undispatchable today) and streaming? Pin it.
+- [x] **Multi-target.** *Done (2026-06-16):* `TargetFrameworks=netstandard2.0;net8.0` (kept netstandard2.0
+      for net48; one modern LTS asset covers net8/9/10 consumers — net9 is STS, net10 needs its SDK installed).
+      `Microsoft.CSharp` is now referenced only for netstandard2.0 (in-box on net8). `pack` produces both
+      `lib/netstandard2.0` and `lib/net8.0` assets.
+- [x] **Add SourceLink.** *Done (2026-06-16):* added `Microsoft.SourceLink.GitHub` (`PrivateAssets=all`) +
+      `Deterministic`; `dotnet pack` emits the `.snupkg` symbol package. (Set `ContinuousIntegrationBuild=true` in CI.)
+- [x] **Decide the surface.** *Done (2026-06-16):* pinned to **void fire-and-forget** commands/events.
+      Request/response (`ICommand<TResponse>`) was removed from the active surface — it can't be honored on
+      the durable-queue path (no caller to return to). Streaming is out of scope. Can revisit for an
+      inline-only request/response path later if a real need appears.
 
 ## P2 — quality & decisions
 
