@@ -26,16 +26,14 @@ Architecture/build/conventions are in [`../CLAUDE.md`](../CLAUDE.md).
 
 ## Current state
 
-- **Repo:** `D:\git\saintsystems\BusFire`, branch `main`, local only.
-- **NOT pushed** to GitHub and **NOT published** to nuget.org.
+- **Repo:** `D:\git\saintsystems\BusFire`, branch `main`, pushed to **`github.com/saintsystems/BusFire`** (public, MIT).
+- **NOT published** to nuget.org yet.
 - Build: `dotnet build BusFire.sln`. Pack: `dotnet pack src\BusFire.csproj -c Release`.
 
 ## Pending decisions / next actions
 
-1. **GitHub push (blocked on owner choice).** `csproj` assumes `github.com/saintsystems/BusFire`.
-   Once the owner is confirmed (`saintsystems` org vs personal), create + push:
-   `gh repo create <owner>/BusFire --public --source . --remote origin --push`
-   (and fix the `RepositoryUrl`/`PackageProjectUrl` in `src/BusFire.csproj` if the owner differs).
+1. ~~**GitHub push (blocked on owner choice).**~~ **Done (2026-06-16):** created and pushed to the public
+   `saintsystems/BusFire` repo; `csproj` `RepositoryUrl`/`PackageProjectUrl` already match.
 2. **P0 roadmap items** — most impactful before a client depends on it:
    - ~~Restore Laravel-style `IShouldQueue` conditional dispatch (inline by default, queue on opt-in).~~
      **Done (2026-06-16):** `Bus` runs `Send`/`Publish` inline via `IBusInternal` unless the message
