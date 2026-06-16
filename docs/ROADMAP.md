@@ -43,10 +43,11 @@ restoring the conditional model is the headline goal.
 
 ## P1 — packaging & API for third parties
 
-- [ ] **Decouple from storage / Hangfire bootstrapping.** `AddBusFire` currently calls
-      `AddHangfire(...UseSqlServerStorage...)` itself, which collides with hosts that already
-      configure Hangfire. Invert it: let the consumer own Hangfire + storage; BusFire only
-      registers handlers, the bridge, and serializer settings. Unlocks non-SQL-Server storage.
+- [x] **Decouple from storage / Hangfire bootstrapping.** *Done (2026-06-16):* added a storage-agnostic
+      `AddBusFire(cfg => ...)` overload that registers handlers/bus/registry/failure filter but does **not**
+      touch Hangfire. The host owns `AddHangfire` + storage (e.g. PostgreSQL) and calls
+      `config.UseBusFire(provider)` to apply BusFire's serializer settings + failure filter. The old
+      `AddBusFire(BusOptions, cfg)` remains as a SQL-Server batteries-included convenience overload.
 - [ ] **Remove the static global config** (`BusFireGlobalConfiguration.Configuration`).
       Process-wide mutable state breaks test isolation and multiple-instance scenarios.
 - [ ] **Restore `IQueueable`** (self-describing queue name + delay, with `OnQueue`/`WithDelay`),

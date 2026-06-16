@@ -36,13 +36,24 @@ public class SendWelcomeEmailHandler : ICommandHandler<SendWelcomeEmail>
 }
 ```
 
-Register on the **producer** (anything that dispatches):
+Register on the **producer** (anything that dispatches). BusFire is storage-agnostic — **you own Hangfire and its storage**, and call `config.UseBusFire(provider)` to wire BusFire's serializer + failure filter:
 
 ```csharp
-services.AddBusFire(
-    new BusOptions { ConnectionStringOrName = "BusFire" },
-    cfg => cfg.RegisterServicesFromAssemblyContaining<SendWelcomeEmailHandler>());
+services.AddBusFire(cfg => cfg.RegisterServicesFromAssemblyContaining<SendWelcomeEmailHandler>());
+
+services.AddHangfire((provider, config) =>
+{
+    config.UsePostgreSqlStorage(connectionString); // or SQL Server, Redis, in-memory, ...
+    config.UseBusFire(provider);                   // required: BusFire serializer + failure filter
+});
 ```
+
+> **Batteries-included SQL Server shortcut:** if you want BusFire to own the Hangfire/SQL Server bootstrap, use the convenience overload instead — it configures Hangfire + SQL Server storage for you:
+> ```csharp
+> services.AddBusFire(
+>     new BusOptions { ConnectionStringOrName = "BusFire" },
+>     cfg => cfg.RegisterServicesFromAssemblyContaining<SendWelcomeEmailHandler>());
+> ```
 
 Register on the **consumer** (the app that should process jobs):
 

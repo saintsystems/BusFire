@@ -34,13 +34,16 @@ Architecture/build/conventions are in [`../CLAUDE.md`](../CLAUDE.md).
 
 1. ~~**GitHub push (blocked on owner choice).**~~ **Done (2026-06-16):** created and pushed to the public
    `saintsystems/BusFire` repo; `csproj` `RepositoryUrl`/`PackageProjectUrl` already match.
-2. **P0 roadmap items** — most impactful before a client depends on it:
-   - ~~Restore Laravel-style `IShouldQueue` conditional dispatch (inline by default, queue on opt-in).~~
-     **Done (2026-06-16):** `Bus` runs `Send`/`Publish` inline via `IBusInternal` unless the message
-     implements `IShouldQueue`; `Defer` always queues. See `ROADMAP.md` P0.
-   - ~~Replace `TypeNameHandling.All` (RCE + versioning risk).~~ **Done (2026-06-16):** `TypeNameHandling.None`
-     + logical message-type registry (`MessageJsonConverter`, `[MessageName]`). See `ROADMAP.md` P0.
-3. **Smoke-test harness + CI.** The original `TestHarness` referenced `Kwik.Bus`, not FireBus, so it
+2. **All four P0 roadmap items are done (2026-06-16)** — see `ROADMAP.md` P0 for detail:
+   - Conditional `IShouldQueue` dispatch (inline by default, queue on opt-in; `Defer` always queues).
+   - `TypeNameHandling.All` → `TypeNameHandling.None` + logical message-type registry (`MessageJsonConverter`, `[MessageName]`).
+   - Per-handler event fan-out (one job per handler; isolated retries).
+   - Dropped the serialized `CancellationToken` (Hangfire injects the live token).
+3. **P1 in progress.** Storage decoupling is **done (2026-06-16):** storage-agnostic `AddBusFire(cfg => ...)`
+   + host-owned Hangfire via `config.UseBusFire(provider)` (unblocks the PostgreSQL host); SQL Server
+   convenience overload retained. Remaining P1: remove the static global config, restore `IQueueable`,
+   multi-target net8/net9, SourceLink validation, pin the request/response surface.
+4. **Smoke-test harness + CI.** The original `TestHarness` referenced `Kwik.Bus`, not FireBus, so it
    did not transfer — a fresh minimal harness is needed. Add GitHub Actions for build/test/pack.
 
 ## Decision log
