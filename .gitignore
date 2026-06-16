@@ -6,6 +6,12 @@ artifacts/
 *.nupkg
 *.snupkg
 
+# Test / coverage output
+[Tt]est[Rr]esults/
+*.cobertura.xml
+coverage*.xml
+*.coverage
+
 # Visual Studio / Rider / VS Code
 .vs/
 .vscode/

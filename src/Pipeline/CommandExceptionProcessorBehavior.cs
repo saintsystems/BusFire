@@ -46,7 +46,9 @@ namespace BusFire.Pipeline
                 {
                     try
                     {
-                        await ((Task)(handlerForException.MethodInfo.Invoke(handlerForException.Handler, new object[] { command, exception, state, cancellationToken })
+                        // ICommandExceptionHandler<TCommand, TException>.Handle takes (command, exception, state) —
+                        // no CancellationToken. The arg array must match that arity exactly.
+                        await ((Task)(handlerForException.MethodInfo.Invoke(handlerForException.Handler, new object[] { command, exception, state })
                                       ?? throw new InvalidOperationException("Did not return a Task from the exception handler."))).ConfigureAwait(false);
                     }
                     catch (TargetInvocationException invocationException) when (invocationException.InnerException != null)

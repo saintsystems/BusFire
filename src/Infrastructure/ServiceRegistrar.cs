@@ -226,8 +226,9 @@ namespace BusFire.Infrastructure
 
             services.TryAdd(eventPublisherServiceDescriptor);
 
-            // Use TryAdd, so any existing ServiceFactory/IMediator registration doesn't get overriden
-            //services.TryAddTransient<ServiceFactory>(p => p.GetRequiredService);
+            // CommandExceptionActionProcessorBehavior depends on ServiceFactory to resolve the exception
+            // actions; without this registration that behavior throws when an ICommandExceptionAction exists.
+            services.TryAddTransient<ServiceFactory>(sp => type => sp.GetService(type)!);
             //services.TryAdd(new ServiceDescriptor(typeof(IBus), serviceConfiguration.BusImplementationType, serviceConfiguration.Lifetime));
             //services.TryAdd(new ServiceDescriptor(typeof(ISender), sp => sp.GetRequiredService<IMediator>(), serviceConfiguration.Lifetime));
             //services.TryAdd(new ServiceDescriptor(typeof(IPublisher), sp => sp.GetRequiredService<IMediator>(), serviceConfiguration.Lifetime));

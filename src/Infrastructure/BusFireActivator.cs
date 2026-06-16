@@ -7,6 +7,10 @@ using System.Text;
 
 namespace BusFire.Infrastructure
 {
+    // Hangfire JobActivator integration — only meaningful inside a running Hangfire server, so excluded
+    // from unit-test coverage (integration territory). Fully-qualified attribute to avoid colliding with
+    // Hangfire.Annotations.NotNull imported above.
+    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     internal class AspNetCoreJobActivatorScope : JobActivatorScope
     {
         private readonly IServiceScope _serviceScope;
@@ -32,6 +36,7 @@ namespace BusFire.Infrastructure
         }
     }
     // This class injects the default DI container into hangfire jobs
+    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     public class BusFireActivator : JobActivator
     {
         private readonly IServiceScopeFactory _serviceScopeFactory;

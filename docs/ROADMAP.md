@@ -68,11 +68,27 @@ restoring the conditional model is the headline goal.
       Request/response (`ICommand<TResponse>`) was removed from the active surface — it can't be honored on
       the durable-queue path (no caller to return to). Streaming is out of scope. Can revisit for an
       inline-only request/response path later if a real need appears.
+- [ ] **Call-site dispatch override (message-based → hybrid).** Dispatch mode is currently message-based
+      (`IShouldQueue`/`IQueueable` declare inline-vs-queued per type). That's the deliberate Laravel-aligned
+      default and gives a centralized "can't forget to queue" guarantee, but pure message-based can't express
+      *contextual* decisions (same operation queued from a web request, inline from an already-async batch).
+      Laravel itself is a hybrid (`ShouldQueue` default + `dispatchSync()`/`->onQueue()` overrides). Add a thin
+      call-site override — force-inline and force-queue — keeping the message-based default. Non-breaking
+      (additive), so it can land post-baseline. Going *fully* call-based (Wolverine-style, routing via central
+      config) is explicitly out of scope — that's reimplementing a full messaging framework.
 
 ## P2 — quality & decisions
 
-- [ ] **Tests.** There are currently none. Cover registration/scanning, the pipeline,
-      conditional dispatch, serialization round-trips, and failure handling.
+- [x] **Tests.** *Done (2026-06-16):* `tests/BusFire.Tests` (xUnit, 61 tests) covering conditional
+      dispatch + `IQueueable` precedence, the in-process mediator and per-handler fan-out, the pipeline
+      (behaviors, pre/post processors, exception handlers/actions), the message-type registry, serializer
+      round-trips, registration/scanning, and the default publisher. **~82% line coverage** (Hangfire
+      runtime shims — the `JobActivator` and failure `JobFilter` — are `[ExcludeFromCodeCoverage]` as
+      integration-only). Run: `dotnet test tests/BusFire.Tests -p:CollectCoverage=true -p:Include='[BusFire]*'`.
+      The tests caught and fixed two latent bugs: (1) `CommandExceptionProcessorBehavior` invoked the
+      exception handler with 4 args against a 3-arg interface (`TargetParameterCountException` on every use);
+      (2) `AddBusFire` never registered `ServiceFactory`, so `CommandExceptionActionProcessorBehavior` threw
+      when any `ICommandExceptionAction` existed.
 - [ ] **CI** (GitHub Actions): build, test, pack; publish to nuget.org on tag.
 - [ ] **Reserve the `SaintSystems.*`-style prefix or confirm `BusFire` ownership** on nuget.org
       before first publish.

@@ -25,14 +25,21 @@ dotnet build BusFire.sln              # build the library
 dotnet pack src\BusFire.csproj -c Release   # produce the NuGet package
 ```
 
-There are **no tests yet** (a P2 roadmap item). When adding them, also wire CI.
+Tests live in `tests/BusFire.Tests` (xUnit). Run with coverage:
+
+```powershell
+dotnet test tests\BusFire.Tests -p:CollectCoverage=true -p:CoverletOutputFormat=cobertura -p:Include="[BusFire]*"
+```
+
+~82% line coverage. The Hangfire runtime shims (`BusFireActivator`/`NotifyOnFailureAttribute`) are
+`[ExcludeFromCodeCoverage]` (integration-only). CI is still a P2 item.
 
 ## Architecture: two-stage dispatch
 
 Read `Bus.cs`, `Infrastructure/HangfireBridge.cs`, and `BusInternal.cs` together:
 
 1. **Producer — `IBus`/`Bus`:** `Send`/`Publish` run handlers **inline** via `IBusInternal` unless the message implements `IShouldQueue`, in which case they enqueue a Hangfire job targeting `HangfireBridge`. `IQueueable : IShouldQueue` adds self-declared `Queue`/`Delay` (read-only getters); queue precedence is per-call arg › `IQueueable.Queue` › `"default"`, and a non-null `IQueueable.Delay` schedules instead of enqueues. `Defer` always enqueues (`Schedule`) — a delayed message can't run inline "now".
-2. **Transport:** Hangfire (storage is the host's choice — PostgreSQL, SQL Server, etc.; the `AddBusFire(BusOptions, …)` convenience overload wires SQL Server + schema `HangFire`). Serialization uses Newtonsoft with `TypeNameHandling.None` plus a logical message-type registry: `MessageJsonConverter` writes a stable `__busfire_type` name (default `Type.FullName`, overridable with `[MessageName]`) resolved via `IMessageTypeRegistry`/`MessageTypeRegistry`, built from the scanned assemblies in `AddBusFire` and passed to `HangfireConfigurationExtensions.UseBusFire`. No assembly-qualified `$type` is persisted (closes the RCE vector; rename-safe). `[Queue("{3}")]` on the bridge routes by the queue argument.
+2. **Transport:** Hangfire — **storage is the host's choice** (PostgreSQL, SQL Server, Redis…); the host owns `AddHangfire` and calls `config.UseBusFire(provider)`, or uses the `AddBusFire(cfg, configureStorage)` overload that takes a storage delegate. Serialization uses Newtonsoft with `TypeNameHandling.None` plus a logical message-type registry: `MessageJsonConverter` writes a stable `__busfire_type` name (default `Type.FullName`, overridable with `[MessageName]`) resolved via `IMessageTypeRegistry`/`MessageTypeRegistry`, built from the scanned assemblies in `AddBusFire`. No assembly-qualified `$type` is persisted (closes the RCE vector; rename-safe). The bridge routes by the queue argument: `[Queue("{2}")]` on `Send`/`Publish`, `[Queue("{3}")]` on `RunEventHandler`.
 3. **Consumer — `HangfireBridge` → `IBusInternal`/`BusInternal`:** resolves handlers (reflection-built wrappers cached in static `ConcurrentDictionary`s), runs pipeline behaviors, executes in a fresh DI scope.
 
 ## Registration (entry points)

@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Hangfire.Client;
 using Hangfire.Common;
 using Hangfire.Logging;
@@ -7,6 +8,9 @@ using Hangfire.Storage;
 
 namespace BusFire.Infrastructure
 {
+    // A global Hangfire JobFilter — exercised only against a live Hangfire state machine (integration
+    // territory), so it is excluded from unit-test coverage rather than faked with heavy Hangfire contexts.
+    [ExcludeFromCodeCoverage]
     public class NotifyOnFailureAttribute : JobFilterAttribute,
         IClientFilter, IServerFilter, IElectStateFilter, IApplyStateFilter
     {

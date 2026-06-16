@@ -39,12 +39,18 @@ Architecture/build/conventions are in [`../CLAUDE.md`](../CLAUDE.md).
    - `TypeNameHandling.All` → `TypeNameHandling.None` + logical message-type registry (`MessageJsonConverter`, `[MessageName]`).
    - Per-handler event fan-out (one job per handler; isolated retries).
    - Dropped the serialized `CancellationToken` (Hangfire injects the live token).
-3. **P1 in progress.** Storage decoupling is **done (2026-06-16):** storage-agnostic `AddBusFire(cfg => ...)`
-   + host-owned Hangfire via `config.UseBusFire(provider)` (unblocks the PostgreSQL host); SQL Server
-   convenience overload retained. Remaining P1: remove the static global config, restore `IQueueable`,
-   multi-target net8/net9, SourceLink validation, pin the request/response surface.
-4. **Smoke-test harness + CI.** The original `TestHarness` referenced `Kwik.Bus`, not FireBus, so it
-   did not transfer — a fresh minimal harness is needed. Add GitHub Actions for build/test/pack.
+3. **All P1 roadmap items are done (2026-06-16)** — see `ROADMAP.md` P1:
+   - Storage decoupling: storage-agnostic `AddBusFire(cfg => ...)` + host-owned Hangfire via
+     `config.UseBusFire(provider)`, plus an `AddBusFire(cfg, configureStorage)` convenience overload.
+     The SQL-Server-specific path and `Hangfire.SqlServer` dependency were dropped (unblocks PostgreSQL).
+   - Removed the static global config; restored `IQueueable : IShouldQueue` (read-only `Queue`/`Delay`).
+   - Multi-target `netstandard2.0;net8.0`; added SourceLink + `.snupkg`.
+   - Pinned the surface to fire-and-forget (removed `ICommand<TResponse>`).
+   - **Deferred (additive):** a call-site dispatch override to make the message-based model a hybrid
+     (see ROADMAP P1) — non-breaking, can land post-baseline.
+4. **Tests done (2026-06-16):** `tests/BusFire.Tests` (xUnit, 61 tests, ~82% line coverage). Caught and
+   fixed two latent bugs (exception-handler arg-count mismatch; missing `ServiceFactory` registration).
+   **CI is still open** — add GitHub Actions for build/test/pack and publish-on-tag (P2).
 
 ## Decision log
 
