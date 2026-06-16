@@ -26,9 +26,11 @@ restoring the conditional model is the headline goal.
       *Done (2026-06-16):* `Bus` now injects `IBusInternal` and runs `Send`/`Publish` inline
       unless the message implements `IShouldQueue`. `Defer` always queues (a delayed message
       can't run inline "now"). The `IShouldQueue` marker is now referenced.
-- [ ] **Replace `TypeNameHandling.All`.** It's an RCE-grade deserialization vector and makes
-      persisted jobs brittle across type/assembly renames. Move to a logical-type-name
-      registry or a strict `ISerializationBinder` allowlist.
+- [x] **Replace `TypeNameHandling.All`.** *Done (2026-06-16):* moved to `TypeNameHandling.None` plus a
+      logical message-type registry (`IMessageTypeRegistry`/`MessageTypeRegistry`) + `MessageJsonConverter`.
+      Jobs now persist a stable `__busfire_type` name (default `Type.FullName`, overridable via the new
+      `[MessageName]` attribute) instead of assembly-qualified `$type` — closing the RCE vector and making
+      persisted jobs rename-safe.
 - [ ] **Per-handler event jobs / idempotency story.** Today a single failing event handler
       re-runs all handlers on retry. Fan out one job per handler, or document the
       idempotency requirement prominently (it's in the README; needs enforcement options).
@@ -59,8 +61,8 @@ restoring the conditional model is the headline goal.
 - [ ] **Reserve the `SaintSystems.*`-style prefix or confirm `BusFire` ownership** on nuget.org
       before first publish.
 - [ ] **Build-vs-buy sanity check.** If P0/P1 drift toward reimplementing an outbox + retry
-      policy + sagas, evaluate [Wolverine](https://wolverinefx.net/) (durable mediator +
-      outbox) before investing further — it is this exact pattern, matured.
+      policy + sagas, evaluate a mature durable-mediator/outbox library before investing
+      further — that exact pattern already exists, matured, off the shelf.
 
 ## Known dead code carried over from the fork
 

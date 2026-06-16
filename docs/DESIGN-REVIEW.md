@@ -40,9 +40,10 @@ design (from Laravel's `ShouldQueue`) was better — run inline unless the messa
 ## Build-vs-buy sanity check
 
 Before investing heavily, weigh against mature options that do this pattern:
-- **Wolverine** — literally a durable mediator + transactional outbox + scheduling; the closest match
-  to what BusFire wants to be, and it solves the outbox/idempotency problems. If P0/P1 drift toward
-  reimplementing outbox + retry policy + sagas, just use Wolverine.
+- **Durable mediator + transactional outbox libraries** — there are mature libraries that already pair a
+  mediator surface with a transactional outbox, scheduling, and retry/saga support, solving the
+  outbox/idempotency problems directly. If P0/P1 drift toward reimplementing outbox + retry policy +
+  sagas, prefer one of those over building it here.
 - **MassTransit / Rebus / NServiceBus** — full messaging (broker-oriented, SQL transports exist).
 - **Hangfire directly** — if the value is just "durable background jobs," a thin convention layer may do.
 - **MediatR** — note its 2024–2025 move to **commercial licensing**; an argument *for* owning the

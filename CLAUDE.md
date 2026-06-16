@@ -16,7 +16,7 @@ intentionally still present and tracked in those docs — don't treat them as ne
 
 It was extracted from an internal `FireBus` fork (itself a fork of `Kwik.Bus`), which inlines a stripped-down MediatR plus Hangfire as the transport. Large blocks of commented-out MediatR code and a `#define FIREBUS` toggle (`IBus.cs`) remain — they document lineage; leave them unless the roadmap calls for removal.
 
-**Before doing architectural work, read [`docs/ROADMAP.md`](docs/ROADMAP.md).** It records the design intent (Laravel `ShouldQueue` conditional dispatch) and the prioritized refactors from the extraction review. This repo is a lift-and-shift baseline; several known issues (`TypeNameHandling.All`, baked-in storage) are intentionally still present and tracked there — don't treat them as discoveries.
+**Before doing architectural work, read [`docs/ROADMAP.md`](docs/ROADMAP.md).** It records the design intent (Laravel `ShouldQueue` conditional dispatch) and the prioritized refactors from the extraction review. This repo is a lift-and-shift baseline; some known issues (e.g. baked-in storage) are intentionally still present and tracked there — don't treat them as discoveries.
 
 ## Build & test
 
@@ -32,7 +32,7 @@ There are **no tests yet** (a P2 roadmap item). When adding them, also wire CI.
 Read `Bus.cs`, `Infrastructure/HangfireBridge.cs`, and `BusInternal.cs` together:
 
 1. **Producer — `IBus`/`Bus`:** `Send`/`Publish` run handlers **inline** via `IBusInternal` unless the message implements `IShouldQueue`, in which case they enqueue a Hangfire job targeting `HangfireBridge`. `Defer` always enqueues (`Schedule`) — a delayed message can't run inline "now".
-2. **Transport:** Hangfire + SQL Server (`UseSqlServerStorage`, schema `HangFire`). Serialization uses Newtonsoft with `TypeNameHandling.All` (`HangfireConfigurationExtensions.UseBusFire`) — flagged for replacement in the roadmap. `[Queue("{3}")]` on the bridge routes by the queue argument.
+2. **Transport:** Hangfire + SQL Server (`UseSqlServerStorage`, schema `HangFire`). Serialization uses Newtonsoft with `TypeNameHandling.None` plus a logical message-type registry: `MessageJsonConverter` writes a stable `__busfire_type` name (default `Type.FullName`, overridable with `[MessageName]`) resolved via `IMessageTypeRegistry`/`MessageTypeRegistry`, built from the scanned assemblies in `AddBusFire` and passed to `HangfireConfigurationExtensions.UseBusFire`. No assembly-qualified `$type` is persisted (closes the RCE vector; rename-safe). `[Queue("{3}")]` on the bridge routes by the queue argument.
 3. **Consumer — `HangfireBridge` → `IBusInternal`/`BusInternal`:** resolves handlers (reflection-built wrappers cached in static `ConcurrentDictionary`s), runs pipeline behaviors, executes in a fresh DI scope.
 
 ## Registration (entry points)

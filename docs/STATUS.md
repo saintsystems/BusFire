@@ -40,7 +40,8 @@ Architecture/build/conventions are in [`../CLAUDE.md`](../CLAUDE.md).
    - ~~Restore Laravel-style `IShouldQueue` conditional dispatch (inline by default, queue on opt-in).~~
      **Done (2026-06-16):** `Bus` runs `Send`/`Publish` inline via `IBusInternal` unless the message
      implements `IShouldQueue`; `Defer` always queues. See `ROADMAP.md` P0.
-   - Replace `TypeNameHandling.All` (RCE + versioning risk).
+   - ~~Replace `TypeNameHandling.All` (RCE + versioning risk).~~ **Done (2026-06-16):** `TypeNameHandling.None`
+     + logical message-type registry (`MessageJsonConverter`, `[MessageName]`). See `ROADMAP.md` P0.
 3. **Smoke-test harness + CI.** The original `TestHarness` referenced `Kwik.Bus`, not FireBus, so it
    did not transfer — a fresh minimal harness is needed. Add GitHub Actions for build/test/pack.
 

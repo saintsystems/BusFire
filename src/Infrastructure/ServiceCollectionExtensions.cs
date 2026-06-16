@@ -13,6 +13,21 @@ namespace BusFire.Infrastructure
             if (services == null) throw new ArgumentNullException(nameof(services));
             if (configuration == null) throw new ArgumentNullException(nameof(configuration));
 
+            var serviceConfig = BusFireGlobalConfiguration.Configuration;
+
+            configuration.Invoke(serviceConfig);
+
+            if (!serviceConfig.AssembliesToRegister.Any())
+            {
+                throw new ArgumentException("No assemblies found to scan. Supply at least one assembly to scan for handlers.");
+            }
+
+            // Build the logical message-type registry from the scanned assemblies so persisted jobs can use
+            // stable type names (TypeNameHandling.None) instead of assembly-qualified $type metadata.
+            var messageRegistry = new MessageTypeRegistry(
+                MessageTypeRegistry.DiscoverMessageTypes(serviceConfig.AssembliesToRegister));
+            services.AddSingleton<IMessageTypeRegistry>(messageRegistry);
+
             services.AddScoped<NotifyOnFailureAttribute>();
             services.AddHangfire((provider, config) =>
             {
@@ -23,7 +38,7 @@ namespace BusFire.Infrastructure
 					});
 
                 config.UseFilter(provider.CreateScope().ServiceProvider.GetRequiredService<NotifyOnFailureAttribute>());
-                config.UseBusFire();
+                config.UseBusFire(messageRegistry);
 			});
 
             //if (options.EnableQueueProcessor)
@@ -34,19 +49,11 @@ namespace BusFire.Infrastructure
             services.AddSingleton<IBusInternal, BusInternal>();
             services.AddSingleton<IBus, Bus>();
 
-            var serviceConfig = BusFireGlobalConfiguration.Configuration;
-
-            configuration?.Invoke(serviceConfig);
-
             if (serviceConfig.FailureHandler is NullFailureHandler)
             {
                 services.AddScoped<IFailureHandler, NullFailureHandler>();
             }
 
-            if (!serviceConfig.AssembliesToRegister.Any())
-            {
-                throw new ArgumentException("No assemblies found to scan. Supply at least one assembly to scan for handlers.");
-            }
             ServiceRegistrar.AddBusFireClasses(services, serviceConfig);
 
             ServiceRegistrar.AddRequiredServices(services, serviceConfig);
