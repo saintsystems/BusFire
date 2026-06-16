@@ -1,29 +1,34 @@
 # BusFire
 
-A simple [Hangfire](https://www.hangfire.io/)-backed command/event bus for .NET — a **durable mediator**. You dispatch `ICommand`s and `IEvent`s through a MediatR-style surface, and BusFire runs the handlers as durable Hangfire background jobs (persisted, retried, schedulable, observable via the Hangfire dashboard) without standing up a separate message broker.
+A simple [Hangfire](https://www.hangfire.io/)-backed command/event bus for .NET — a **durable mediator**. You dispatch `ICommand`s and `IEvent`s through a MediatR-style surface; handlers run in-process by default, or — when a message opts in — as durable Hangfire background jobs (persisted, retried, schedulable, observable via the Hangfire dashboard) without standing up a separate message broker.
 
-The design is inspired by [Laravel's bus/dispatcher](https://laravel.com/docs/queues) and its `ShouldQueue` contract: messages dispatch **in-process by default**, and run **on a durable queue when they opt in**. (See [Status](#status) — the opt-in path is the next milestone; today every message is queued.)
+The design is inspired by [Laravel's bus/dispatcher](https://laravel.com/docs/queues) and its `ShouldQueue` contract: messages dispatch **in-process by default**, and run **on a durable queue when they opt in** by implementing `IShouldQueue`.
 
 > **Status: pre-1.0, not yet published to nuget.org.** The public API is still being reshaped — see [`docs/ROADMAP.md`](docs/ROADMAP.md). Don't take a dependency on it yet.
 
 ## How it works
 
 ```
-caller → IBus.Send/Publish  →  enqueue Hangfire job  →  (SQL Server)  →  Hangfire server
-                                                                              │
-                                          HangfireBridge → BusInternal → your handler
+                          ┌─ message is NOT IShouldQueue ─→ run inline now (BusInternal → handler)
+caller → IBus.Send/Publish ┤
+                          └─ message IS IShouldQueue ─→ enqueue Hangfire job → (SQL Server) → Hangfire server
+                                                                                                   │
+                                                               HangfireBridge → BusInternal → your handler
 ```
 
-1. `IBus.Send(command)` / `Publish(event)` enqueue a Hangfire job rather than invoking handlers directly.
-2. Hangfire persists the job (SQL Server) and a Hangfire server picks it up.
-3. `HangfireBridge` resolves the message's handler(s) via `BusInternal` and runs them, through the pipeline behaviors, in a fresh DI scope.
+1. `IBus.Send(command)` / `Publish(event)` run the handler(s) **in-process** by default, through the pipeline behaviors, in a fresh DI scope.
+2. If the message implements `IShouldQueue`, BusFire instead **enqueues a Hangfire job** so it runs durably on a Hangfire server. `Defer(...)` always queues (a delayed message can't run inline now).
+3. On the queued path, Hangfire persists the job (SQL Server), a Hangfire server picks it up, and `HangfireBridge` resolves and runs the handler(s) via `BusInternal`.
+
+Queued messages are persisted with a stable logical type name (no assembly-qualified `$type`), so jobs survive type/assembly renames; override a message's logical name with `[MessageName("...")]` if you refactor its namespace.
 
 ## Quick start
 
 Define a command and its handler:
 
 ```csharp
-public record SendWelcomeEmail(string Email) : ICommand;
+// Runs inline by default. Add `, IShouldQueue` to make it run as a durable Hangfire job instead:
+public record SendWelcomeEmail(string Email) : ICommand, IShouldQueue;
 
 public class SendWelcomeEmailHandler : ICommandHandler<SendWelcomeEmail>
 {
@@ -59,13 +64,15 @@ A pure producer calls `AddBusFire` only; the worker that runs handlers also call
 
 - **`ICommand` / `ICommandHandler<T>`** — one handler per command.
 - **`IEvent` / `IEventHandler<T>`** — many handlers per event.
+- **`IShouldQueue`** — marker a message implements to opt into durable queued dispatch; without it, dispatch runs in-process.
+- **`[MessageName("...")]`** — pins a message's stable logical name on the wire so namespace/assembly renames don't break in-flight jobs.
 - **Pipeline behaviors** — `ICommandPreProcessor`, `ICommandPostProcessor`, `ICommandExceptionHandler`, `ICommandExceptionAction`, `IPipelineBehavior`.
 - **`IFailureHandler`** — invoked when a job exhausts retries and lands in the failed state (wired via `NotifyOnFailureAttribute`).
 - **`BusFireServiceConfiguration`** — the `cfg` builder: register handler assemblies, swap the `IEventPublisher`, set the `IFailureHandler`, choose lifetimes and exception strategy.
 
 ## Operational contract
 
-BusFire delivers **at least once** and retries the whole job on failure, so:
+For **queued** messages (`IShouldQueue` / `Defer`), BusFire delivers **at least once** and retries the whole job on failure, so:
 
 - **Handlers must be idempotent.**
 - For events with multiple handlers, a failure in one handler currently re-runs *all* of them on retry (see roadmap for per-handler isolation).
