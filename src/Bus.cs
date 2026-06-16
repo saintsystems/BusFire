@@ -31,7 +31,9 @@ namespace BusFire
 
 			if (command is IShouldQueue)
 			{
-				_backgroundJobClient.Enqueue<HangfireBridge>(bridge => bridge.Send(command.GetType().FullName, command, cancellationToken, queue));
+				// The queued path relies on Hangfire's injected job-cancellation token on the consumer side;
+				// the caller's token is honored only on the inline path below.
+				_backgroundJobClient.Enqueue<HangfireBridge>(bridge => bridge.Send(command.GetType().FullName, command, queue, CancellationToken.None));
 				return Task.CompletedTask;
 			}
 
@@ -49,7 +51,7 @@ namespace BusFire
 
 			if (@event is IShouldQueue)
 			{
-				_backgroundJobClient.Enqueue<HangfireBridge>(bridge => bridge.Publish(@event.GetType().FullName, @event, cancellationToken, queue));
+				_backgroundJobClient.Enqueue<HangfireBridge>(bridge => bridge.Publish(@event.GetType().FullName, @event, queue, CancellationToken.None));
 				return Task.CompletedTask;
 			}
 
@@ -65,7 +67,7 @@ namespace BusFire
 		{
 			if (command == null) throw new ArgumentNullException(nameof(command));
 
-			_backgroundJobClient.Schedule<HangfireBridge>(bridge => bridge.Send(command.GetType().FullName, command, cancellationToken, queue), delay);
+			_backgroundJobClient.Schedule<HangfireBridge>(bridge => bridge.Send(command.GetType().FullName, command, queue, CancellationToken.None), delay);
 			return Task.CompletedTask;
 		}
 
@@ -78,7 +80,7 @@ namespace BusFire
 		{
 			if (@event == null) throw new ArgumentNullException(nameof(@event));
 
-			_backgroundJobClient.Schedule<HangfireBridge>(bridge => bridge.Publish(@event.GetType().FullName, @event, cancellationToken, queue), delay);
+			_backgroundJobClient.Schedule<HangfireBridge>(bridge => bridge.Publish(@event.GetType().FullName, @event, queue, CancellationToken.None), delay);
 			return Task.CompletedTask;
 		}
 	}

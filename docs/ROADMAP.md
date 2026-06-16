@@ -31,11 +31,15 @@ restoring the conditional model is the headline goal.
       Jobs now persist a stable `__busfire_type` name (default `Type.FullName`, overridable via the new
       `[MessageName]` attribute) instead of assembly-qualified `$type` — closing the RCE vector and making
       persisted jobs rename-safe.
-- [ ] **Per-handler event jobs / idempotency story.** Today a single failing event handler
-      re-runs all handlers on retry. Fan out one job per handler, or document the
-      idempotency requirement prominently (it's in the README; needs enforcement options).
-- [ ] **Drop the serialized `CancellationToken`.** It's meaningless on the consumer side;
-      rely on Hangfire's injected job-cancellation token.
+- [x] **Per-handler event jobs / idempotency story.** *Done (2026-06-16):* the queued event path now
+      fans out — `HangfireBridge.Publish` enqueues one `RunEventHandler` job per registered handler
+      (via `IBusInternal.GetEventHandlerTypeNames` / `PublishToHandler`), each in its own DI scope, so a
+      failure retries only that handler. (Inline, non-queued publish still runs all handlers in-process.)
+      Handlers must still be idempotent — see the README operational contract.
+- [x] **Drop the serialized `CancellationToken`.** *Done (2026-06-16):* the bridge methods take the
+      `CancellationToken` last so Hangfire substitutes a live job-cancellation token at run time; the
+      producer passes `CancellationToken.None` on the queued path, so no caller token is persisted. The
+      caller's token is still honored on the inline path.
 
 ## P1 — packaging & API for third parties
 

@@ -75,7 +75,7 @@ A pure producer calls `AddBusFire` only; the worker that runs handlers also call
 For **queued** messages (`IShouldQueue` / `Defer`), BusFire delivers **at least once** and retries the whole job on failure, so:
 
 - **Handlers must be idempotent.**
-- For events with multiple handlers, a failure in one handler currently re-runs *all* of them on retry (see roadmap for per-handler isolation).
+- Events fan out to **one job per handler**, so a failure retries only that handler — not all of them. (A handler that itself isn't idempotent can still re-run on its own retry.)
 - `Send`/`Publish` enqueue on Hangfire's own storage connection — they do **not** enlist in your business DB transaction. Use an outbox or transaction enlistment if you need exactly-once-relative-to-your-data semantics.
 
 ## License

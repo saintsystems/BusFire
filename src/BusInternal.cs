@@ -1,4 +1,5 @@
 using BusFire.Wrappers;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -70,14 +71,40 @@ namespace BusFire
 
 		private Task PublishEvent(IEvent @event, CancellationToken cancellationToken = default)
 		{
-			var notificationType = @event.GetType();
-			//var handler = _eventHandlers.GetOrAdd(notificationType,
-			//	static t => (EventHandlerWrapper)(Activator.CreateInstance(typeof(EventHandlerWrapperImpl<>).MakeGenericType(t))
-			//	                                         ?? throw new InvalidOperationException($"Could not create wrapper for type {t}")));
-			var handler = _eventHandlers.GetOrAdd(notificationType,
-				t => (EventHandlerWrapper)Activator.CreateInstance(typeof(EventHandlerWrapperImpl<>).MakeGenericType(notificationType)));
+			return GetEventHandlerWrapper(@event.GetType()).Handle(@event, _serviceProvider, PublishCore, cancellationToken);
+		}
 
-			return handler.Handle(@event, _serviceProvider, PublishCore, cancellationToken);
+		public IReadOnlyList<string> GetEventHandlerTypeNames(IEvent @event)
+		{
+			if (@event == null)
+			{
+				throw new ArgumentNullException(nameof(@event));
+			}
+
+			using (var scope = _serviceProvider.CreateScope())
+			{
+				return GetEventHandlerWrapper(@event.GetType()).GetHandlerTypeNames(scope.ServiceProvider);
+			}
+		}
+
+		public async Task PublishToHandler(IEvent @event, string handlerTypeName, CancellationToken token)
+		{
+			if (@event == null)
+			{
+				throw new ArgumentNullException(nameof(@event));
+			}
+
+			// Fresh scope per handler job, mirroring the command path, so scoped dependencies don't leak across jobs.
+			using (var scope = _serviceProvider.CreateScope())
+			{
+				await GetEventHandlerWrapper(@event.GetType()).HandleOne(@event, scope.ServiceProvider, handlerTypeName, token);
+			}
+		}
+
+		private static EventHandlerWrapper GetEventHandlerWrapper(Type eventType)
+		{
+			return _eventHandlers.GetOrAdd(eventType,
+				t => (EventHandlerWrapper)Activator.CreateInstance(typeof(EventHandlerWrapperImpl<>).MakeGenericType(t)));
 		}
 
 	}
