@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Package">
+    <PackageId>BusFire</PackageId>
+    <Product>BusFire</Product>
+    <Authors>SaintSystems</Authors>
+    <Company>SaintSystems</Company>
+    <Description>A simple Hangfire-backed command/event bus — a durable mediator with Laravel-style ShouldQueue semantics: dispatch in-process by default, run on a durable queue when a message opts in.</Description>
+    <Copyright>Copyright (c) SaintSystems</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>hangfire;mediator;bus;cqrs;messaging;queue;dispatcher;shouldqueue</PackageTags>
+    <RepositoryUrl>https://github.com/saintsystems/BusFire</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageProjectUrl>https://github.com/saintsystems/BusFire</PackageProjectUrl>
+    <!-- Pre-1.0: public API is still being reshaped (see docs/ROADMAP.md). Not yet published. -->
+    <Version>0.1.0</Version>
+  </PropertyGroup>
+
+  <PropertyGroup Label="SourceLink">
+    <DebugType>portable</DebugType>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Faithful to the original dependency set; storage decoupling is a roadmap item. -->
+    <PackageReference Include="Hangfire" Version="1.8.11" />
+    <PackageReference Include="Hangfire.AspNetCore" Version="1.8.11" />
+    <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+</Project>

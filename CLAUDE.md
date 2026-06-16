@@ -1,0 +1,58 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Resuming work here
+
+Start with [`docs/STATUS.md`](docs/STATUS.md) — current state, decision log, and next actions (it's
+the session-handoff doc). Then [`docs/ROADMAP.md`](docs/ROADMAP.md) for prioritized work and
+[`docs/DESIGN-REVIEW.md`](docs/DESIGN-REVIEW.md) for the architectural rationale and the
+`Kwik.Bus`↔`FireBus` comparison. This repo is a lift-and-shift baseline; several known issues are
+intentionally still present and tracked in those docs — don't treat them as new discoveries.
+
+## What this is
+
+`BusFire` is a NuGet library (`netstandard2.0`, PackageId `BusFire`, currently `0.1.0`, **not yet published**): a MediatR-style command/event dispatcher whose transport is Hangfire. Commands/events are serialized and enqueued as Hangfire background jobs (persisted to SQL Server), then dispatched to handlers by a Hangfire server — a "durable mediator."
+
+It was extracted from an internal `FireBus` fork (itself a fork of `Kwik.Bus`), which inlines a stripped-down MediatR plus Hangfire as the transport. Large blocks of commented-out MediatR code and a `#define FIREBUS` toggle (`IBus.cs`) remain — they document lineage; leave them unless the roadmap calls for removal.
+
+**Before doing architectural work, read [`docs/ROADMAP.md`](docs/ROADMAP.md).** It records the design intent (Laravel `ShouldQueue` conditional dispatch) and the prioritized refactors from the extraction review. This repo is a lift-and-shift baseline; several known issues (`TypeNameHandling.All`, baked-in storage) are intentionally still present and tracked there — don't treat them as discoveries.
+
+## Build & test
+
+```powershell
+dotnet build BusFire.sln              # build the library
+dotnet pack src\BusFire.csproj -c Release   # produce the NuGet package
+```
+
+There are **no tests yet** (a P2 roadmap item). When adding them, also wire CI.
+
+## Architecture: two-stage dispatch
+
+Read `Bus.cs`, `Infrastructure/HangfireBridge.cs`, and `BusInternal.cs` together:
+
+1. **Producer — `IBus`/`Bus`:** `Send`/`Publish` run handlers **inline** via `IBusInternal` unless the message implements `IShouldQueue`, in which case they enqueue a Hangfire job targeting `HangfireBridge`. `Defer` always enqueues (`Schedule`) — a delayed message can't run inline "now".
+2. **Transport:** Hangfire + SQL Server (`UseSqlServerStorage`, schema `HangFire`). Serialization uses Newtonsoft with `TypeNameHandling.All` (`HangfireConfigurationExtensions.UseBusFire`) — flagged for replacement in the roadmap. `[Queue("{3}")]` on the bridge routes by the queue argument.
+3. **Consumer — `HangfireBridge` → `IBusInternal`/`BusInternal`:** resolves handlers (reflection-built wrappers cached in static `ConcurrentDictionary`s), runs pipeline behaviors, executes in a fresh DI scope.
+
+## Registration (entry points)
+
+`Infrastructure/ServiceCollectionExtensions.cs`:
+
+- **`AddBusFire(busOptions, cfg => cfg.RegisterServicesFromAssemblies(...))`** — on every app that produces or consumes. Wires Hangfire SQL storage, scans assemblies for handlers/behaviors (`ServiceRegistrar.cs`), registers `IBus`/`ISender`/`IPublisher`. Throws if no assemblies supplied.
+- **`AddBusFireServer()`** — only on apps that should process jobs (`AddHangfireServer`); queues come from `BusOptions.Queues`.
+
+`BusFireServiceConfiguration` (`Infrastructure/BusFireServiceConfiguration.cs`) is the `cfg` builder: handler assemblies, `IEventPublisher`, `IFailureHandler`, lifetime, behaviors, exception strategy. Note `BusFireGlobalConfiguration.Configuration` is a static global (roadmap: remove).
+
+## Handlers & pipeline
+
+Contracts live in `IBus.cs`, guarded by `#define FIREBUS` (default = BusFire's own marker interfaces; `#else` = MediatR-based). `ICommandHandler<TCommand>` (one per command), `IEventHandler<TEvent>` (many; published via `IEventPublisher`, default `ForEachAwaitPublisher`). Behaviors wrap command handling in `Wrappers/CommandHandlerWrapper.cs` by reverse-aggregating `IPipelineBehavior<TCommand>`. `*Behavior` classes register only when an implementation exists (`RegisterBehaviorIfImplementationsExist`).
+
+## Failure handling
+
+`NotifyOnFailureAttribute` (a global Hangfire `JobFilterAttribute`) forwards a job's id + exception to the configured `IFailureHandler` when it enters the failed state. Default is the no-op `NullFailureHandler`; override via `BusFireServiceConfiguration.FailureHandler`.
+
+## Conventions
+
+- Keep the public API under the `BusFire` brand — no `FireBus`/`Kwik` names in new code.
+- Source control is git; the upstream is intended to be `github.com/saintsystems/BusFire` (confirm before pushing/publishing).
