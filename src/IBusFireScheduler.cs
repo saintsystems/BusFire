@@ -22,6 +22,14 @@ namespace BusFire
 
         /// <summary>Remove a recurring schedule by id (no-op if it doesn't exist).</summary>
         void Remove(string id);
+
+        /// <summary>
+        /// Declare the full set of recurring schedules in one place ("schedule is code"). Upserts every
+        /// schedule registered inside <paramref name="configure"/>, then <b>prunes</b> any BusFire-owned
+        /// recurring job that was not declared this pass — so renamed/removed schedules don't leave orphaned
+        /// recurring jobs firing forever in storage. Call once at startup.
+        /// </summary>
+        void ConfigureSchedules(Action<IBusFireScheduler> configure);
     }
 
     /// <summary>

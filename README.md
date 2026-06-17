@@ -136,6 +136,24 @@ scheduler.Schedule("six-hourly",     new Sync()).Cron("0 */6 * * *");   // raw c
 scheduler.Remove("heartbeat");   // unschedule by id
 ```
 
+**Keep the schedule in sync with your code** by declaring all schedules in one block at startup.
+`ConfigureSchedules` upserts everything you declare and then **prunes any BusFire-owned recurring job that
+isn't declared** — so renaming or deleting a schedule doesn't leave an orphan firing forever in storage
+(the gap a durable scheduler has that a stateless one like Laravel/Coravel doesn't):
+
+```csharp
+scheduler.ConfigureSchedules(s =>
+{
+    s.Schedule("nightly-rollup", new RunNightlyRollup.Command()).DailyAt(2, 30);
+    s.Schedule("heartbeat",      new Heartbeat()).EveryFiveMinutes();
+});
+// any other busfire-owned recurring job not declared above is removed
+```
+
+BusFire recurring-job ids are namespaced with a `busfire:` prefix in storage/the dashboard (so pruning only
+ever touches BusFire's own jobs, never recurring jobs you registered directly with Hangfire). You still pass
+plain ids to `Schedule`/`Remove`.
+
 Frequencies: `EveryMinute`/`EveryFiveMinutes`/`EveryTenMinutes`/`EveryFifteenMinutes`/`EveryThirtyMinutes`,
 `Hourly`/`HourlyAt(m)`, `Daily`/`DailyAt(h,m)`, `Weekly`, `Monthly`, `Cron(...)`; refine with
 `Monday()…Sunday()`/`Weekday()`/`Weekend()` and `Zoned(tz)`. Schedules are **minute-granularity** (Hangfire

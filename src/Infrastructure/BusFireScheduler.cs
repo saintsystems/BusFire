@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using Hangfire;
 using Hangfire.Common;
@@ -12,33 +13,79 @@ namespace BusFire.Infrastructure
     /// </summary>
     public sealed class BusFireScheduler : IBusFireScheduler
     {
-        private readonly IRecurringJobManager _recurringJobs;
+        // All BusFire recurring-job ids are namespaced so they can be grouped in the dashboard and, crucially,
+        // so ConfigureSchedules can prune BusFire's own jobs without touching recurring jobs the host
+        // registered directly via Hangfire.
+        internal const string IdPrefix = "busfire:";
 
-        public BusFireScheduler(IRecurringJobManager recurringJobs)
+        private readonly IRecurringJobManager _recurringJobs;
+        private readonly IRecurringJobStore _store;
+
+        // Non-null only while inside ConfigureSchedules; collects the ids declared this pass.
+        private HashSet<string>? _declaredIds;
+
+        public BusFireScheduler(IRecurringJobManager recurringJobs, IRecurringJobStore store)
         {
             _recurringJobs = recurringJobs ?? throw new ArgumentNullException(nameof(recurringJobs));
+            _store = store ?? throw new ArgumentNullException(nameof(store));
         }
 
         public IRecurringFrequency Schedule(string id, ICommand command, string? queue = null)
         {
             if (command == null) throw new ArgumentNullException(nameof(command));
+            var fullId = Declare(id);
             var q = queue ?? "default";
             var job = Job.FromExpression<HangfireBridge>(b => b.Send(command.GetType().FullName, command, q, CancellationToken.None));
-            return new Builder(_recurringJobs, RequireId(id), job);
+            return new Builder(_recurringJobs, fullId, job);
         }
 
         public IRecurringFrequency Schedule(string id, IEvent @event, string? queue = null)
         {
             if (@event == null) throw new ArgumentNullException(nameof(@event));
+            var fullId = Declare(id);
             var q = queue ?? "default";
             var job = Job.FromExpression<HangfireBridge>(b => b.Publish(@event.GetType().FullName, @event, q, CancellationToken.None));
-            return new Builder(_recurringJobs, RequireId(id), job);
+            return new Builder(_recurringJobs, fullId, job);
         }
 
-        public void Remove(string id) => _recurringJobs.RemoveIfExists(RequireId(id));
+        public void Remove(string id) => _recurringJobs.RemoveIfExists(FullId(id));
 
-        private static string RequireId(string id)
-            => string.IsNullOrWhiteSpace(id) ? throw new ArgumentException("A recurring schedule id is required.", nameof(id)) : id;
+        public void ConfigureSchedules(Action<IBusFireScheduler> configure)
+        {
+            if (configure == null) throw new ArgumentNullException(nameof(configure));
+            if (_declaredIds != null) throw new InvalidOperationException("ConfigureSchedules cannot be nested.");
+
+            var declared = new HashSet<string>(StringComparer.Ordinal);
+            _declaredIds = declared;
+            try
+            {
+                configure(this);
+            }
+            finally
+            {
+                _declaredIds = null;
+            }
+
+            // "Schedule is code": prune BusFire-owned recurring jobs that weren't declared this pass, so a
+            // renamed/removed schedule doesn't leave an orphan firing forever.
+            foreach (var existingId in _store.GetRecurringJobIds())
+            {
+                if (existingId.StartsWith(IdPrefix, StringComparison.Ordinal) && !declared.Contains(existingId))
+                {
+                    _recurringJobs.RemoveIfExists(existingId);
+                }
+            }
+        }
+
+        private string Declare(string id)
+        {
+            var fullId = FullId(id);
+            _declaredIds?.Add(fullId);
+            return fullId;
+        }
+
+        private static string FullId(string id)
+            => IdPrefix + (string.IsNullOrWhiteSpace(id) ? throw new ArgumentException("A recurring schedule id is required.", nameof(id)) : id);
 
         // Builds the cron from fields so a day-of-week method can refine a frequency, and re-upserts the
         // recurring job on each call (idempotent) so it always reflects the accumulated state.

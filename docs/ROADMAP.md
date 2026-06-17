@@ -107,7 +107,9 @@ restoring the conditional model is the headline goal.
 [`DESIGN-REVIEW.md`](DESIGN-REVIEW.md). **Phase 1 done (2026-06-17):** `IBusFireScheduler` (`src/IBusFireScheduler.cs`,
 `Infrastructure/BusFireScheduler.cs`), registered in `AddBusFire`, with the Coravel-style fluent frequency +
 day-of-week + `Zoned` builder and `Remove(id)`, over Hangfire `IRecurringJobManager`, reusing `HangfireBridge`.
-10 tests; ~82% coverage held. See the README "Recurring (scheduled) dispatch" section.
+Also: recurring ids are namespaced `busfire:`, and **`ConfigureSchedules(...)` reconciles** — upserts the
+declared set and prunes orphaned BusFire-owned recurring jobs (the rename/orphan fix; `IRecurringJobStore`
+seam lists existing ids). 12 tests; ~82% coverage held. See the README "Recurring (scheduled) dispatch" section.
 
 - **Hangfire owns the cron engine** (`RecurringJob`): persistence, dashboard, misfire handling. Do **not**
   rebuild scheduling — borrow ergonomics, not the engine.
