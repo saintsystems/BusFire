@@ -90,6 +90,34 @@ A pure producer calls `AddBusFire` only; the worker that runs handlers also call
 - **`IFailureHandler`** — invoked when a job exhausts retries and lands in the failed state (wired via `NotifyOnFailureAttribute`).
 - **`BusFireServiceConfiguration`** — the `cfg` builder: register handler assemblies, swap the `IEventPublisher`, set the `IFailureHandler`, choose lifetimes and exception strategy.
 
+## Organizing a message with its handler (the "Job" convention)
+
+BusFire keeps the message (data) and its handler (behavior) as **separate types** — that's what keeps the
+serialized payload pure data and lets events fan out to many handlers. But you don't have to scatter them:
+co-locate both as **nested types in one container class**, the idiomatic "vertical slice" style. You get
+Job-like cohesion (open one file, see the data *and* the behavior) without giving up the separation:
+
+```csharp
+public static class SendWelcomeEmail              // the "Job" container
+{
+    [MessageName("send-welcome-email")]           // clean, rename-safe wire name
+    public sealed record Command(string Email) : ICommand, IShouldQueue;
+
+    public sealed class Handler : ICommandHandler<Command>
+    {
+        private readonly IEmailService _email;
+        public Handler(IEmailService email) => _email = email;
+        public Task Handle(Command command, CancellationToken ct) => _email.SendWelcomeAsync(command.Email, ct);
+    }
+}
+
+await bus.Send(new SendWelcomeEmail.Command("a@b.com"));   // reads like a job
+```
+
+Assembly scanning discovers nested handlers automatically — no extra registration. Keep the container and
+nested types `public`, and prefer `[MessageName("…")]` on the message (a nested type's `FullName` uses `+`
+and changes if you rename the container, so pin a stable logical name).
+
 ## Operational contract
 
 For **queued** messages (`IShouldQueue` / `Defer`), BusFire delivers **at least once** and retries the whole job on failure, so:

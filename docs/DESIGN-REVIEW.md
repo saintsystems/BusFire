@@ -85,3 +85,36 @@ Kwik is **mid-refactor**: `KwikMediator.cs` (a custom `IMediator`) is present bu
 (`AddMediatR` is used; `MediatorImplementationType = typeof(KwikMediator)` is commented out) and
 `BusInternal.cs` is `<Compile Remove>`'d. So Kwik was drifting toward a custom mediator that never
 landed; FireBus took the alternative route of dropping MediatR outright. Treat Kwik as reference only.
+
+## Message/handler separation vs the "Job" model (Laravel/Coravel)
+
+**Decision: keep request/handler separation; do *not* adopt a combined Job type.** Laravel (Jobs) and
+Coravel (`IInvocable`) merge data + behavior in one class — but only for the *command* side; both keep
+**events + listeners separated** (1:many), which BusFire already mirrors with `IEvent`/`IEventHandler`.
+So the only open question was the command side, and three BusFire-specific properties make separation the
+right call:
+
+1. **Serializer safety.** The P0 logical-type-name serializer (`TypeNameHandling.None`) is safe *because
+   messages are pure data DTOs*. A combined Job serializes the whole instance — the classic footgun is
+   injected services ending up on the wire. Separation keeps the payload data-only by construction.
+2. **Per-handler event fan-out** can't be expressed by a 1-class combined job.
+3. **Pipeline behaviors** wrap a *separate* handler cleanly.
+
+The legitimate pull of the Job model is **cohesion/locality** for simple/recurring tasks. We get that
+*without merging* via the **nested-container convention** (a `static class` holding a nested `Command`
+record + `Handler`) — the established MediatR "vertical slice" shape. It needs **zero engine changes**:
+assembly scanning already finds nested handlers (the test suite relies on exactly this). This supersedes an
+earlier `ISelfHandling` idea, which merged data+behavior and reintroduced the serialization footgun.
+
+## Recurring jobs & the scheduler↔dispatcher relationship
+
+**Decision: recurring is a *trigger*, not a subsystem; the scheduler stays separate from the dispatcher.**
+In Laravel the Scheduler **depends on** the Dispatcher (one-directional) — `$schedule->job()` delegates to
+`dispatch()`, and a scheduled job uses the *identical* dispatch contract. "When it fires" is orthogonal to
+"how it runs / who handles it." BusFire should compose them the same way: Hangfire's `RecurringJob` is the
+cron engine; the recurring job's body is the existing `HangfireBridge.Send`/`Publish`, so recurring feeds
+the same invariant pipeline as every other trigger. Put the fluent API on a separate `IBusFireScheduler`
+(depends on the bus/bridge; the bus knows nothing about cron). Borrow **Coravel's fluent frequency DSL**
+(Laravel's scheduler for .NET) for ergonomics, but **not its in-process/non-durable engine** — pairing
+Coravel-style syntax with Hangfire durability is the sweet spot. Actionable design + scope in
+[`ROADMAP.md`](ROADMAP.md#recurring-scheduled-jobs--design-note-proposed-not-yet-built).

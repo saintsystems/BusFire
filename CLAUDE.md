@@ -57,7 +57,7 @@ Read `Bus.cs`, `Infrastructure/HangfireBridge.cs`, and `BusInternal.cs` together
 - **`AddBusFire(cfg => ..., hangfire => hangfire.UseXxxStorage(...))`** — convenience overload: calls the storage-agnostic overload, then owns the `AddHangfire` call (`configureStorage(config)` + `UseBusFire(provider)`). Host supplies storage only; no SQL hardcoding. Don't also call `AddHangfire` separately.
 - **`AddBusFireServer()`** — only on apps that should process jobs (`AddHangfireServer`); queues come from `BusOptions.Queues`.
 
-`BusFireServiceConfiguration` (`Infrastructure/BusFireServiceConfiguration.cs`) is the `cfg` builder: handler assemblies, `IEventPublisher`, `IFailureHandler`, lifetime, behaviors, exception strategy. Note `BusFireGlobalConfiguration.Configuration` is a static global (roadmap: remove).
+`BusFireServiceConfiguration` (`Infrastructure/BusFireServiceConfiguration.cs`) is the `cfg` builder: handler assemblies, `IEventPublisher`, `IFailureHandler`, lifetime, behaviors, exception strategy. A fresh instance is created per `AddBusFire` call (the old `BusFireGlobalConfiguration` static was removed).
 
 ## Handlers & pipeline
 
@@ -70,4 +70,5 @@ Contracts live in `IBus.cs`, guarded by `#define FIREBUS` (default = BusFire's o
 ## Conventions
 
 - Keep the public API under the `BusFire` brand — no `FireBus`/`Kwik` names in new code.
+- **Message ≠ handler stays separate** (data DTO vs behavior) — that's what keeps the wire payload data-only and enables event fan-out + pipeline behaviors. The recommended way to organize them is the **nested-container "Job" convention**: a `public static class SendWelcomeEmail` holding a nested `record Command : ICommand` and `class Handler : ICommandHandler<Command>`. Co-location without merging; assembly scanning finds nested handlers (the tests rely on exactly this). Don't merge data+behavior into one type — it would put deps on the wire. See the README "Job convention" section.
 - Source control is git; the upstream is intended to be `github.com/saintsystems/BusFire` (confirm before pushing/publishing).

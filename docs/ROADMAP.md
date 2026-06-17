@@ -101,6 +101,35 @@ restoring the conditional model is the headline goal.
       policy + sagas, evaluate a mature durable-mediator/outbox library before investing
       further — that exact pattern already exists, matured, off the shelf.
 
+## Recurring (scheduled) jobs — design note (proposed, not yet built)
+
+Add **recurring/cron dispatch** as a *fourth trigger* into the existing dispatch pipeline. Design decided
+(see [`DESIGN-REVIEW.md`](DESIGN-REVIEW.md) for rationale); not yet implemented.
+
+- **Hangfire owns the cron engine** (`RecurringJob`): persistence, dashboard, misfire handling. Do **not**
+  rebuild scheduling — borrow ergonomics, not the engine.
+- **Recurring = the 4th trigger** alongside `Send`/`Defer`/`IQueueable`, all feeding the *same* invariant
+  pipeline (bridge → `BusInternal` → handlers, serializer, event fan-out, failure filter). Implementation is
+  literally `RecurringJob.AddOrUpdate<HangfireBridge>(id, b => b.Send/Publish(...), cron, options)` — reusing
+  the existing bridge, so recurring work flows through the same path as a one-shot queued message. Like
+  `Defer`, recurring always runs server-side, so `IShouldQueue` is moot for it.
+- **Separate `IBusFireScheduler`**, not on `IBus` — the scheduler *depends on* the bus/bridge; the dispatch
+  surface stays ignorant of cron (one-directional dependency, mirroring Laravel Scheduler↔Dispatcher and
+  Coravel `IScheduler`). Don't put `Cron`/schedule on messages or handlers.
+- **Borrow Coravel's fluent DSL** (it's the Laravel scheduler for .NET): `Schedule(id, message).Daily()` /
+  `.Hourly()` / `.EveryFiveMinutes()` / `.DailyAt(h,m)` / `.HourlyAt(m)` / `.Weekly().Monday()` / `.Monthly()`
+  / `.Cron("…")`, plus `.PreventOverlapping()` (→ Hangfire `DisableConcurrentExecution`), `.Zoned(tz)` (→
+  `RecurringJobOptions.TimeZone`), `.RunOnceAtStart()` (→ `TriggerJob`). Define schedules in code at startup
+  (idempotent `AddOrUpdate`), Laravel "schedule is code" style.
+- **Don't borrow** Coravel's in-process/non-durable engine, sub-minute helpers (`EverySecond…` — Hangfire
+  recurring is minute-grained; document the limit), `Once()` (that's one-shot — already `Send`/`Defer`), or
+  `OnError`/`OnWorker` (covered by BusFire's failure filter + `queue` routing).
+- Schedule a **message instance** (data), not a Coravel-style invocable — keeps the wire data-only and reuses
+  the handler/pipeline. The nested-container "Job" convention (see README) is the recommended authoring shape:
+  `scheduler.Schedule("nightly", new RunNightlyReport.Command()).Daily();`
+- **Phase 1:** `IBusFireScheduler.Schedule(id, message)` + the fluent frequency builder + `Remove(id)`, over
+  the existing bridge, with tests. **Phase 2 (defer):** richer constraints (`When`, more frequencies).
+
 ## Known dead code carried over from the fork
 
 - `#define FIREBUS` toggle in `IBus.cs` (FireBus-native vs MediatR interfaces).
