@@ -51,11 +51,33 @@ Architecture/build/conventions are in [`../CLAUDE.md`](../CLAUDE.md).
 4. **Tests done (2026-06-16):** `tests/BusFire.Tests` (xUnit, 61 tests, ~82% line coverage). Caught and
    fixed two latent bugs (exception-handler arg-count mismatch; missing `ServiceFactory` registration).
 5. **CI done (2026-06-17):** `.github/workflows/ci.yml` (build + coverage-gated test + pack) and
-   `release.yml` (publish to nuget.org on `v*` tag). Versioning = **MinVer** (tag-driven). **To publish:**
-   add the `NUGET_API_KEY` repo secret, confirm `BusFire` is free on nuget.org, then `git tag v0.1.0 &&
-   git push origin v0.1.0`.
+   `release.yml` (publish to nuget.org on `v*` tag). Versioning = **MinVer** (tag-driven). To cut the
+   first release, follow the **Publishing checklist** below.
+
+## Publishing checklist (first nuget.org release)
+
+Package ID is bare **`BusFire`** (see decision log). Do these in order:
+
+1. **Confirm `BusFire` is still free** on nuget.org (`https://www.nuget.org/packages/BusFire`) — it's a
+   single-word, first-come-first-served ID, so claim it promptly.
+2. **Create a nuget.org API key** scoped to push (Glob pattern `BusFire`), then add it as the repo secret
+   **`NUGET_API_KEY`**: `gh secret set NUGET_API_KEY` (or via GitHub repo Settings → Secrets → Actions).
+   The `release.yml` workflow reads this secret.
+3. **Sanity-check** locally: `dotnet pack src\BusFire.csproj -c Release` builds a clean `.nupkg` + `.snupkg`.
+4. **Tag and push to release:** `git tag v0.1.0 && git push origin v0.1.0`. MinVer stamps the package
+   `0.1.0`; the `release.yml` workflow tests, packs, and pushes `BusFire.0.1.0.nupkg` (+ symbols) to
+   nuget.org with `--skip-duplicate`.
+5. **After the first publish, request an ID prefix reservation** for `BusFire` (with the `BusFire.*`
+   wildcard) via nuget.org → Manage Packages → Reserve ID Prefix (or contact support). Grants the
+   verified-owner badge and protects the `BusFire.*` namespace from squatting. (Single-word prefix
+   approval isn't guaranteed; if declined, the bare `BusFire` package is unaffected.)
 
 ## Decision log
+
+- **Package ID = bare `BusFire`** (matches the root namespace and the brand; ID↔namespace match is the
+  NuGet convention). `SaintSystems.BusFire` (under a reservable `SaintSystems.*` prefix) was the alternative
+  — chosen against because it mismatches the `BusFire` namespace. Plan: ship `BusFire`, then request a
+  `BusFire`/`BusFire.*` prefix reservation for the verified badge + namespace protection.
 
 - **Name = `BusFire`** (bare, playful). `FireBus`/`Firebus` is **taken** on nuget.org (owner `variel`,
   same problem domain, dormant since 2021-05) so it can't be published; `SaintSystems.FireBus` was the
