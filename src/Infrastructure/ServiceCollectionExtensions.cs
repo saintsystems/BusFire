@@ -49,6 +49,8 @@ namespace BusFire.Infrastructure
 
             services.AddSingleton<IBusInternal, BusInternal>();
             services.AddSingleton<IBus, Bus>();
+            // Recurring (cron) dispatch — depends on the host's Hangfire IRecurringJobManager at resolve time.
+            services.AddSingleton<IBusFireScheduler, BusFireScheduler>();
 
             if (serviceConfig.FailureHandler is NullFailureHandler)
             {

@@ -101,10 +101,13 @@ restoring the conditional model is the headline goal.
       policy + sagas, evaluate a mature durable-mediator/outbox library before investing
       further — that exact pattern already exists, matured, off the shelf.
 
-## Recurring (scheduled) jobs — design note (proposed, not yet built)
+## Recurring (scheduled) jobs — Phase 1 done
 
-Add **recurring/cron dispatch** as a *fourth trigger* into the existing dispatch pipeline. Design decided
-(see [`DESIGN-REVIEW.md`](DESIGN-REVIEW.md) for rationale); not yet implemented.
+**Recurring/cron dispatch** as a *fourth trigger* into the existing dispatch pipeline. Design rationale in
+[`DESIGN-REVIEW.md`](DESIGN-REVIEW.md). **Phase 1 done (2026-06-17):** `IBusFireScheduler` (`src/IBusFireScheduler.cs`,
+`Infrastructure/BusFireScheduler.cs`), registered in `AddBusFire`, with the Coravel-style fluent frequency +
+day-of-week + `Zoned` builder and `Remove(id)`, over Hangfire `IRecurringJobManager`, reusing `HangfireBridge`.
+10 tests; ~82% coverage held. See the README "Recurring (scheduled) dispatch" section.
 
 - **Hangfire owns the cron engine** (`RecurringJob`): persistence, dashboard, misfire handling. Do **not**
   rebuild scheduling — borrow ergonomics, not the engine.
@@ -127,8 +130,9 @@ Add **recurring/cron dispatch** as a *fourth trigger* into the existing dispatch
 - Schedule a **message instance** (data), not a Coravel-style invocable — keeps the wire data-only and reuses
   the handler/pipeline. The nested-container "Job" convention (see README) is the recommended authoring shape:
   `scheduler.Schedule("nightly", new RunNightlyReport.Command()).Daily();`
-- **Phase 1:** `IBusFireScheduler.Schedule(id, message)` + the fluent frequency builder + `Remove(id)`, over
-  the existing bridge, with tests. **Phase 2 (defer):** richer constraints (`When`, more frequencies).
+- ~~**Phase 1:** `IBusFireScheduler.Schedule(id, message)` + the fluent frequency builder + `Remove(id)`.~~ **Done.**
+- **Phase 2 (deferred):** `PreventOverlapping()` (→ `DisableConcurrentExecution`, needs a decorated bridge
+  method), `RunOnceAtStart()` (→ `Trigger`), `When(...)` runtime predicate, and any richer frequencies.
 
 ## Known dead code carried over from the fork
 

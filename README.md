@@ -118,6 +118,30 @@ Assembly scanning discovers nested handlers automatically — no extra registrat
 nested types `public`, and prefer `[MessageName("…")]` on the message (a nested type's `FullName` uses `+`
 and changes if you rename the container, so pin a stable logical name).
 
+## Recurring (scheduled) dispatch
+
+Dispatch a message on a cron schedule via **`IBusFireScheduler`** — a fourth trigger alongside
+`Send`/`Defer`/`IQueueable`. Hangfire's recurring-job scheduler provides the durable cron engine; when it
+fires, the message flows through the same handler pipeline as any other dispatch. Define schedules in code
+at startup (idempotent — a stable `id` upserts), with a Coravel/Laravel-style fluent surface:
+
+```csharp
+var scheduler = provider.GetRequiredService<IBusFireScheduler>();
+
+scheduler.Schedule("nightly-rollup", new RunNightlyRollup.Command()).DailyAt(2, 30).Zoned(TimeZoneInfo.Local);
+scheduler.Schedule("heartbeat",      new Heartbeat()).EveryFiveMinutes();
+scheduler.Schedule("weekly-report",  new SendWeeklyReport(), queue: "reports").Weekly().Monday();
+scheduler.Schedule("six-hourly",     new Sync()).Cron("0 */6 * * *");   // raw cron escape hatch
+
+scheduler.Remove("heartbeat");   // unschedule by id
+```
+
+Frequencies: `EveryMinute`/`EveryFiveMinutes`/`EveryTenMinutes`/`EveryFifteenMinutes`/`EveryThirtyMinutes`,
+`Hourly`/`HourlyAt(m)`, `Daily`/`DailyAt(h,m)`, `Weekly`, `Monthly`, `Cron(...)`; refine with
+`Monday()…Sunday()`/`Weekday()`/`Weekend()` and `Zoned(tz)`. Schedules are **minute-granularity** (Hangfire
+recurring jobs aren't sub-minute). For a plain recurring CLR call with no handler, use Hangfire's
+`RecurringJob` directly — `IBusFireScheduler` is for when the recurring trigger should run a BusFire handler.
+
 ## Operational contract
 
 For **queued** messages (`IShouldQueue` / `Defer`), BusFire delivers **at least once** and retries the whole job on failure, so:
