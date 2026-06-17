@@ -27,7 +27,7 @@ Architecture/build/conventions are in [`../CLAUDE.md`](../CLAUDE.md).
 ## Current state
 
 - **Repo:** `D:\git\saintsystems\BusFire`, branch `main`, pushed to **`github.com/saintsystems/BusFire`** (public, MIT).
-- **Published:** `BusFire` **0.1.0** is live on nuget.org (tag `v0.1.0`, via Trusted Publishing/OIDC — no stored secret).
+- **Published:** `BusFire` **0.2.0** is live on nuget.org (tags `v0.1.0`, `v0.2.0`, via Trusted Publishing/OIDC — no stored secret). 0.2.0 adds recurring (cron) dispatch (`IBusFireScheduler`).
 - Build: `dotnet build BusFire.sln`. Pack: `dotnet pack src\BusFire.csproj -c Release`.
 
 ## Pending decisions / next actions
