@@ -27,8 +27,8 @@ dotnet pack src\BusFire.csproj -c Release   # produce the NuGet package
 
 The package **version is derived from git tags by MinVer** (tag-driven SemVer) — there's no `<Version>`
 in the csproj. Tag `v0.1.0` → package `0.1.0`; untagged builds get a pre-release (e.g. `0.0.0-alpha.0.N`).
-CI/release run from `.github/workflows/` (`ci.yml`, `release.yml`); a `v*` tag publishes to nuget.org
-(needs the `NUGET_API_KEY` secret). To cut the first release, follow the **Publishing checklist** in
+CI/release run from `.github/workflows/` (`ci.yml`, `release.yml`); a `v*` tag publishes to nuget.org via
+**Trusted Publishing (OIDC)** — no stored secret. To cut the first release, follow the **Publishing checklist** in
 [`docs/STATUS.md`](docs/STATUS.md#publishing-checklist-first-nugetorg-release) (claim the `BusFire` ID, add
 the secret, tag, then reserve the ID prefix).
 

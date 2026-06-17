@@ -51,21 +51,22 @@ Architecture/build/conventions are in [`../CLAUDE.md`](../CLAUDE.md).
 4. **Tests done (2026-06-16):** `tests/BusFire.Tests` (xUnit, 61 tests, ~82% line coverage). Caught and
    fixed two latent bugs (exception-handler arg-count mismatch; missing `ServiceFactory` registration).
 5. **CI done (2026-06-17):** `.github/workflows/ci.yml` (build + coverage-gated test + pack) and
-   `release.yml` (publish to nuget.org on `v*` tag). Versioning = **MinVer** (tag-driven). To cut the
-   first release, follow the **Publishing checklist** below.
+   `release.yml` (publish to nuget.org on `v*` tag via **Trusted Publishing/OIDC — no stored secret**).
+   Versioning = **MinVer** (tag-driven). To cut the first release, follow the **Publishing checklist** below.
 
 ## Publishing checklist (first nuget.org release)
 
-Package ID is bare **`BusFire`** (see decision log). Do these in order:
+Package ID is bare **`BusFire`** (see decision log). Publishing uses **nuget.org Trusted Publishing (OIDC)** —
+no API key is stored as a GitHub secret.
 
-1. **Confirm `BusFire` is still free** on nuget.org (`https://www.nuget.org/packages/BusFire`) — it's a
-   single-word, first-come-first-served ID, so claim it promptly.
-2. **Create a nuget.org API key** scoped to push (Glob pattern `BusFire`), then add it as the repo secret
-   **`NUGET_API_KEY`**: `gh secret set NUGET_API_KEY` (or via GitHub repo Settings → Secrets → Actions).
-   The `release.yml` workflow reads this secret.
+1. ~~**Confirm `BusFire` is free.**~~ **Done (2026-06-17):** verified 404 at `nuget.org/packages/BusFire`.
+2. ~~**Set up auth.**~~ **Done (2026-06-17):** created a **Trusted Publisher Policy** on nuget.org
+   (account `saintsystems`) — Package Owner `saintsystems`, Repo Owner `saintsystems`, Repo `BusFire`,
+   Workflow `release.yml`. `release.yml` authenticates via `NuGet/login@v1` (needs `id-token: write`); no
+   `NUGET_API_KEY` secret. **Note:** a new policy is *pending* until first use within ~7 days — publish soon.
 3. **Sanity-check** locally: `dotnet pack src\BusFire.csproj -c Release` builds a clean `.nupkg` + `.snupkg`.
 4. **Tag and push to release:** `git tag v0.1.0 && git push origin v0.1.0`. MinVer stamps the package
-   `0.1.0`; the `release.yml` workflow tests, packs, and pushes `BusFire.0.1.0.nupkg` (+ symbols) to
+   `0.1.0`; `release.yml` tests, packs, logs in via OIDC, and pushes `BusFire.0.1.0.nupkg` (+ symbols) to
    nuget.org with `--skip-duplicate`.
 5. **After the first publish, request an ID prefix reservation** for `BusFire` (with the `BusFire.*`
    wildcard) via nuget.org → Manage Packages → Reserve ID Prefix (or contact support). Grants the

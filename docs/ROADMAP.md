@@ -91,7 +91,7 @@ restoring the conditional model is the headline goal.
       when any `ICommandExceptionAction` existed.
 - [x] **CI** (GitHub Actions). *Done (2026-06-17):* `.github/workflows/ci.yml` (build + test with an 80%
       line-coverage gate + pack on push/PR to `main`) and `release.yml` (test + pack + push to nuget.org on a
-      `v*` tag; needs the `NUGET_API_KEY` repo secret). Versioning is **MinVer** (tag-driven SemVer):
+      `v*` tag via **Trusted Publishing/OIDC** — no stored secret). Versioning is **MinVer** (tag-driven SemVer):
       `<Version>` removed from the csproj; tag `v0.1.0` → package `0.1.0`, untagged builds get a pre-release.
       MinVer sets `AssemblyVersion` to `{Major}.0.0.0` for net48 binding stability and the precise version on
       `FileVersion`/`InformationalVersion`.
