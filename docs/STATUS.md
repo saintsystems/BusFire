@@ -27,7 +27,7 @@ Architecture/build/conventions are in [`../CLAUDE.md`](../CLAUDE.md).
 ## Current state
 
 - **Repo:** `D:\git\saintsystems\BusFire`, branch `main`, pushed to **`github.com/saintsystems/BusFire`** (public, MIT).
-- **NOT published** to nuget.org yet.
+- **Published:** `BusFire` **0.1.0** is live on nuget.org (tag `v0.1.0`, via Trusted Publishing/OIDC — no stored secret).
 - Build: `dotnet build BusFire.sln`. Pack: `dotnet pack src\BusFire.csproj -c Release`.
 
 ## Pending decisions / next actions
@@ -64,11 +64,11 @@ no API key is stored as a GitHub secret.
    (account `saintsystems`) — Package Owner `saintsystems`, Repo Owner `saintsystems`, Repo `BusFire`,
    Workflow `release.yml`. `release.yml` authenticates via `NuGet/login@v1` (needs `id-token: write`); no
    `NUGET_API_KEY` secret. **Note:** a new policy is *pending* until first use within ~7 days — publish soon.
-3. **Sanity-check** locally: `dotnet pack src\BusFire.csproj -c Release` builds a clean `.nupkg` + `.snupkg`.
-4. **Tag and push to release:** `git tag v0.1.0 && git push origin v0.1.0`. MinVer stamps the package
-   `0.1.0`; `release.yml` tests, packs, logs in via OIDC, and pushes `BusFire.0.1.0.nupkg` (+ symbols) to
-   nuget.org with `--skip-duplicate`.
-5. **After the first publish, request an ID prefix reservation** for `BusFire` (with the `BusFire.*`
+3. ~~**Sanity-check.**~~ **Done.**
+4. ~~**Tag and push to release.**~~ **Done (2026-06-17):** tagged `v0.1.0` at `1b8263f`; `release.yml`
+   tested, packed `BusFire.0.1.0`, logged in via OIDC, and pushed to nuget.org. Package is live (validation
+   /indexing finishes within ~an hour of the push).
+5. **TODO — request an ID prefix reservation** for `BusFire` (with the `BusFire.*`
    wildcard) via nuget.org → Manage Packages → Reserve ID Prefix (or contact support). Grants the
    verified-owner badge and protects the `BusFire.*` namespace from squatting. (Single-word prefix
    approval isn't guaranteed; if declined, the bare `BusFire` package is unaffected.)
