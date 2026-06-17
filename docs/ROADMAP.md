@@ -89,7 +89,12 @@ restoring the conditional model is the headline goal.
       exception handler with 4 args against a 3-arg interface (`TargetParameterCountException` on every use);
       (2) `AddBusFire` never registered `ServiceFactory`, so `CommandExceptionActionProcessorBehavior` threw
       when any `ICommandExceptionAction` existed.
-- [ ] **CI** (GitHub Actions): build, test, pack; publish to nuget.org on tag.
+- [x] **CI** (GitHub Actions). *Done (2026-06-17):* `.github/workflows/ci.yml` (build + test with an 80%
+      line-coverage gate + pack on push/PR to `main`) and `release.yml` (test + pack + push to nuget.org on a
+      `v*` tag; needs the `NUGET_API_KEY` repo secret). Versioning is **MinVer** (tag-driven SemVer):
+      `<Version>` removed from the csproj; tag `v0.1.0` → package `0.1.0`, untagged builds get a pre-release.
+      MinVer sets `AssemblyVersion` to `{Major}.0.0.0` for net48 binding stability and the precise version on
+      `FileVersion`/`InformationalVersion`.
 - [ ] **Reserve the `SaintSystems.*`-style prefix or confirm `BusFire` ownership** on nuget.org
       before first publish.
 - [ ] **Build-vs-buy sanity check.** If P0/P1 drift toward reimplementing an outbox + retry

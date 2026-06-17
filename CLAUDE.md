@@ -25,6 +25,11 @@ dotnet build BusFire.sln              # build the library
 dotnet pack src\BusFire.csproj -c Release   # produce the NuGet package
 ```
 
+The package **version is derived from git tags by MinVer** (tag-driven SemVer) — there's no `<Version>`
+in the csproj. Tag `v0.1.0` → package `0.1.0`; untagged builds get a pre-release (e.g. `0.0.0-alpha.0.N`).
+CI/release run from `.github/workflows/` (`ci.yml`, `release.yml`); a `v*` tag publishes to nuget.org
+(needs the `NUGET_API_KEY` secret).
+
 Tests live in `tests/BusFire.Tests` (xUnit). Run with coverage:
 
 ```powershell

@@ -50,7 +50,10 @@ Architecture/build/conventions are in [`../CLAUDE.md`](../CLAUDE.md).
      (see ROADMAP P1) — non-breaking, can land post-baseline.
 4. **Tests done (2026-06-16):** `tests/BusFire.Tests` (xUnit, 61 tests, ~82% line coverage). Caught and
    fixed two latent bugs (exception-handler arg-count mismatch; missing `ServiceFactory` registration).
-   **CI is still open** — add GitHub Actions for build/test/pack and publish-on-tag (P2).
+5. **CI done (2026-06-17):** `.github/workflows/ci.yml` (build + coverage-gated test + pack) and
+   `release.yml` (publish to nuget.org on `v*` tag). Versioning = **MinVer** (tag-driven). **To publish:**
+   add the `NUGET_API_KEY` repo secret, confirm `BusFire` is free on nuget.org, then `git tag v0.1.0 &&
+   git push origin v0.1.0`.
 
 ## Decision log
 

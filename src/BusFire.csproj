@@ -24,8 +24,9 @@
     <RepositoryUrl>https://github.com/saintsystems/BusFire</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageProjectUrl>https://github.com/saintsystems/BusFire</PackageProjectUrl>
-    <!-- Pre-1.0: public API is still being reshaped (see docs/ROADMAP.md). Not yet published. -->
-    <Version>0.1.0</Version>
+    <!-- Version is derived from git tags by MinVer (see below). Tag `v0.1.0` to release 0.1.0; untagged
+         builds get a pre-release version. No <Version> here on purpose. -->
+    <MinVerTagPrefix>v</MinVerTagPrefix>
   </PropertyGroup>
 
   <PropertyGroup Label="SourceLink">
@@ -46,6 +47,9 @@
     <PackageReference Include="Hangfire.AspNetCore" Version="1.8.11" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="all" />
+    <!-- Tag-driven SemVer: derives PackageVersion/FileVersion from the nearest `v*` git tag, and sets
+         AssemblyVersion to {Major}.0.0.0 (stable binding for net48 consumers). Build-time only. -->
+    <PackageReference Include="MinVer" Version="5.0.0" PrivateAssets="all" />
   </ItemGroup>
 
   <!-- Microsoft.CSharp (dynamic support) is in-box on net8.0; only netstandard2.0/net48 needs the package. -->

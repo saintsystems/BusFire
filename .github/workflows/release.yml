@@ -1,0 +1,36 @@
+name: Release
+
+# Tag a release to publish, e.g.:  git tag v0.1.0 && git push origin v0.1.0
+# Requires repo secret NUGET_API_KEY (a nuget.org API key scoped to push BusFire).
+on:
+  push:
+    tags: [ 'v*' ]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # full history for SourceLink
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            9.0.x
+
+      - name: Restore
+        run: dotnet restore BusFire.sln
+
+      - name: Test (coverage, fail under 80% line)
+        run: dotnet test tests/BusFire.Tests/BusFire.Tests.csproj -c Release --no-restore -p:CollectCoverage=true -p:CoverletOutputFormat=cobertura -p:Include='[BusFire]*' -p:Threshold=80 -p:ThresholdType=line -p:ThresholdStat=total
+
+      # MinVer derives the package version from the pushed `v*` tag — no -p:Version needed.
+      - name: Pack
+        run: dotnet pack src/BusFire.csproj -c Release --no-restore -p:ContinuousIntegrationBuild=true -o ./artifacts
+
+      - name: Push to nuget.org
+        run: dotnet nuget push "./artifacts/*.nupkg" --api-key "${{ secrets.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
