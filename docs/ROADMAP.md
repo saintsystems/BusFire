@@ -1,23 +1,12 @@
 # BusFire Roadmap
 
-This file tracks the work to take BusFire from the lift-and-shift baseline (a faithful
-rebrand of an internal `FireBus` fork) to a publishable, reusable NuGet package.
+This file tracks prioritized and planned work for BusFire.
 
-## Origin & design intent
+## Design intent
 
-BusFire descends from two earlier internal libraries — `Kwik.Bus` and an internal `FireBus` fork
-— both modeled on **Laravel's bus/dispatcher and its `ShouldQueue` contract**. The defining
-idea: a message dispatches **synchronously in-process by default**, and is pushed onto a
-**durable queue only when it opts in** (Laravel: implement `ShouldQueue`; here: implement
-`IShouldQueue`). The current baseline regressed from this — it *always* queues — and
-restoring the conditional model is the headline goal.
-
-## Baseline (done)
-
-- [x] Extracted to its own git repo, MIT-licensed.
-- [x] Rebranded the internal `FireBus` fork → `BusFire` (namespace, identifiers, package id).
-- [x] Removed client branding, TFVC/SCC metadata, and the private NuGet feed (incl. the
-      embedded DevExpress key).
+BusFire is modeled on **Laravel's bus/dispatcher and its `ShouldQueue` contract**. The defining idea: a
+message dispatches **synchronously in-process by default**, and is pushed onto a **durable queue only when it
+opts in** (Laravel: implement `ShouldQueue`; here: implement `IShouldQueue`).
 
 ## P0 — correctness & safety (do before any publish)
 

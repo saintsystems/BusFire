@@ -12,6 +12,9 @@ artifacts/
 coverage*.xml
 *.coverage
 
+# Local-only handoff/working notes (kept on disk, not published)
+docs/STATUS.md
+
 # Visual Studio / Rider / VS Code
 .vs/
 .vscode/

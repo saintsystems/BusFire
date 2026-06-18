@@ -1,8 +1,7 @@
 # BusFire — Design Review
 
-The analysis behind the [roadmap](ROADMAP.md): why the pattern is sound, what to fix before
-publishing, and how BusFire's lineage (`Kwik.Bus` → internal `FireBus` fork → `BusFire`) shaped it.
-This captures the reasoning so it isn't lost; the actionable items live in `ROADMAP.md`.
+The analysis behind the [roadmap](ROADMAP.md): why the pattern is sound and the architectural decisions
+behind it. This captures the reasoning so it isn't lost; the actionable items live in `ROADMAP.md`.
 
 ## Is the pattern sound?
 
@@ -53,38 +52,12 @@ Before investing heavily, weigh against mature options that do this pattern:
 The differentiator that justifies BusFire: **"durable mediator on SQL, zero broker, conditional
 inline/queue"** ergonomics. Keep that crisp and fix the above, and there's a real niche.
 
-## Lineage: `Kwik.Bus` → internal `FireBus` fork → `BusFire`
+## Lineage
 
-`Kwik.Bus` (at `D:\git\saintsystems\kwik\src\Bus`) is the ancestor. An internal `FireBus` fork forked it and
-**cut the MediatR dependency and external project refs** (`Contracts`, `Support`, `Notifications`),
-inlining a stripped MediatR — that's what made it a standalone library. BusFire is the cleaned rebrand.
-
-### What FireBus (and thus BusFire today) *dropped* vs Kwik.Bus — candidates to restore
-
-1. **Inline (non-queued) dispatch** — Kwik ran inline via the mediator unless `IShouldQueue`; BusFire
-   always queues. The `IShouldQueue` marker is still present but unreferenced. (P0)
-2. **`IQueueable`** — self-describing queue name + delay on the message, with `OnQueue()`/`WithDelay()`.
-   BusFire takes `queue`/delay as method args instead. (P1)
-3. **Generic signatures** — Kwik: `Send<TCommand>` / `Publish<TEvent>`; BusFire: non-generic.
-4. **Request/response + streaming** — via MediatR (`IRequest<TResponse>`, `CreateStream`/`IStreamRequest`).
-   BusFire declares `ICommand<out TResponse>` but has no handler interface or dispatch path for it.
-5. **Separate contracts assembly** — Kwik split the public surface into `Contracts`; BusFire bundles it.
-
-### What FireBus/BusFire *added* vs Kwik.Bus — keep
-
-1. **Failure handling** — `NotifyOnFailureAttribute` (Hangfire job filter) + `IFailureHandler` /
-   `NullFailureHandler`, wired into registration. No equivalent in Kwik.
-2. **Working pipeline** — pre/post processors, exception handlers/actions, and the conditional
-   registration logic. Kwik referenced MediatR's pipeline types but registered none.
-3. **Self-contained** — no MediatR / no `Contracts`/`Support` refs; netstandard2.0.
-4. **A config that actually runs** — Kwik's `FireBusServiceConfiguration` invocation was commented out.
-
-### Caveat about Kwik.Bus
-
-Kwik is **mid-refactor**: `KwikMediator.cs` (a custom `IMediator`) is present but **not wired**
-(`AddMediatR` is used; `MediatorImplementationType = typeof(KwikMediator)` is commented out) and
-`BusInternal.cs` is `<Compile Remove>`'d. So Kwik was drifting toward a custom mediator that never
-landed; FireBus took the alternative route of dropping MediatR outright. Treat Kwik as reference only.
+BusFire descends from an internal `FireBus` fork (itself derived from an earlier internal library), both
+modeled on Laravel's bus/`ShouldQueue`. That fork cut the MediatR package dependency and external project
+references, inlining a stripped-down MediatR to become standalone; BusFire is the cleaned, rebranded version.
+The commented-out MediatR blocks and the `#define FIREBUS` toggle in `IBus.cs` remain to document that lineage.
 
 ## Message/handler separation vs the "Job" model (Laravel/Coravel)
 

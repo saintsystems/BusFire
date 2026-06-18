@@ -4,19 +4,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Resuming work here
 
-Start with [`docs/STATUS.md`](docs/STATUS.md) — current state, decision log, and next actions (it's
-the session-handoff doc). Then [`docs/ROADMAP.md`](docs/ROADMAP.md) for prioritized work and
-[`docs/DESIGN-REVIEW.md`](docs/DESIGN-REVIEW.md) for the architectural rationale and the
-`Kwik.Bus`↔`FireBus` comparison. This repo is a lift-and-shift baseline; several known issues are
-intentionally still present and tracked in those docs — don't treat them as new discoveries.
+[`docs/ROADMAP.md`](docs/ROADMAP.md) tracks prioritized/planned work; [`docs/DESIGN-REVIEW.md`](docs/DESIGN-REVIEW.md)
+captures the architectural rationale. (`docs/STATUS.md` is a local, gitignored handoff scratchpad — read it if present.)
 
 ## What this is
 
-`BusFire` is a NuGet library (`netstandard2.0`, PackageId `BusFire`, currently `0.1.0`, **not yet published**): a MediatR-style command/event dispatcher whose transport is Hangfire. Commands/events are serialized and enqueued as Hangfire background jobs (persisted to SQL Server), then dispatched to handlers by a Hangfire server — a "durable mediator."
+`BusFire` is a published NuGet library (`netstandard2.0;net8.0`, PackageId `BusFire`, MIT): a MediatR-style command/event dispatcher whose transport is Hangfire. Commands/events run inline by default, or — when a message implements `IShouldQueue` — are serialized and enqueued as Hangfire background jobs (persisted to the host's chosen storage), then dispatched to handlers by a Hangfire server — a "durable mediator."
 
-It was extracted from an internal `FireBus` fork (itself a fork of `Kwik.Bus`), which inlines a stripped-down MediatR plus Hangfire as the transport. Large blocks of commented-out MediatR code and a `#define FIREBUS` toggle (`IBus.cs`) remain — they document lineage; leave them unless the roadmap calls for removal.
+It inlines a stripped-down MediatR plus Hangfire as the transport. Large blocks of commented-out MediatR code and a `#define FIREBUS` toggle (`IBus.cs`) remain — they document lineage; leave them unless the roadmap calls for removal.
 
-**Before doing architectural work, read [`docs/ROADMAP.md`](docs/ROADMAP.md).** It records the design intent (Laravel `ShouldQueue` conditional dispatch) and the prioritized refactors from the extraction review. This repo is a lift-and-shift baseline; some known issues (e.g. the static global config) are intentionally still present and tracked there — don't treat them as discoveries.
+**Before doing architectural work, read [`docs/ROADMAP.md`](docs/ROADMAP.md).** It records the design intent (Laravel `ShouldQueue` conditional dispatch) and the prioritized work.
 
 ## Build & test
 
@@ -26,11 +23,10 @@ dotnet pack src\BusFire.csproj -c Release   # produce the NuGet package
 ```
 
 The package **version is derived from git tags by MinVer** (tag-driven SemVer) — there's no `<Version>`
-in the csproj. Tag `v0.1.0` → package `0.1.0`; untagged builds get a pre-release (e.g. `0.0.0-alpha.0.N`).
-CI/release run from `.github/workflows/` (`ci.yml`, `release.yml`); a `v*` tag publishes to nuget.org via
-**Trusted Publishing (OIDC)** — no stored secret. To cut the first release, follow the **Publishing checklist** in
-[`docs/STATUS.md`](docs/STATUS.md#publishing-checklist-first-nugetorg-release) (claim the `BusFire` ID, add
-the secret, tag, then reserve the ID prefix).
+in the csproj. Tag `vX.Y.Z` → package `X.Y.Z`; untagged builds get a pre-release (e.g. `0.0.0-alpha.0.N`).
+CI/release run from `.github/workflows/` (`ci.yml`, `release.yml`). **To release:** `git tag vX.Y.Z &&
+git push origin vX.Y.Z` — `release.yml` tests, packs, and publishes to nuget.org via **Trusted Publishing
+(OIDC)** — no stored secret (backed by a nuget.org Trusted Publisher Policy for this repo + `release.yml`).
 
 Tests live in `tests/BusFire.Tests` (xUnit). Run with coverage:
 
@@ -69,6 +65,6 @@ Contracts live in `IBus.cs`, guarded by `#define FIREBUS` (default = BusFire's o
 
 ## Conventions
 
-- Keep the public API under the `BusFire` brand — no `FireBus`/`Kwik` names in new code.
+- Keep the public API under the `BusFire` brand — no `FireBus` names in new code.
 - **Message ≠ handler stays separate** (data DTO vs behavior) — that's what keeps the wire payload data-only and enables event fan-out + pipeline behaviors. The recommended way to organize them is the **nested-container "Job" convention**: a `public static class SendWelcomeEmail` holding a nested `record Command : ICommand` and `class Handler : ICommandHandler<Command>`. Co-location without merging; assembly scanning finds nested handlers (the tests rely on exactly this). Don't merge data+behavior into one type — it would put deps on the wire. See the README "Job convention" section.
 - Source control is git; the upstream is intended to be `github.com/saintsystems/BusFire` (confirm before pushing/publishing).

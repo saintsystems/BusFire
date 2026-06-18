@@ -1,10 +1,15 @@
 # BusFire
 
+[![NuGet](https://img.shields.io/nuget/v/BusFire.svg)](https://www.nuget.org/packages/BusFire)
+[![NuGet downloads](https://img.shields.io/nuget/dt/BusFire.svg)](https://www.nuget.org/packages/BusFire)
+[![CI](https://github.com/saintsystems/BusFire/actions/workflows/ci.yml/badge.svg)](https://github.com/saintsystems/BusFire/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 A simple [Hangfire](https://www.hangfire.io/)-backed command/event bus for .NET — a **durable mediator**. You dispatch `ICommand`s and `IEvent`s through a MediatR-style surface; handlers run in-process by default, or — when a message opts in — as durable Hangfire background jobs (persisted, retried, schedulable, observable via the Hangfire dashboard) without standing up a separate message broker.
 
 The design is inspired by [Laravel's bus/dispatcher](https://laravel.com/docs/queues) and its `ShouldQueue` contract: messages dispatch **in-process by default**, and run **on a durable queue when they opt in** by implementing `IShouldQueue`.
 
-> **Status: pre-1.0, not yet published to nuget.org.** The public API is still being reshaped — see [`docs/ROADMAP.md`](docs/ROADMAP.md). Don't take a dependency on it yet.
+> **Pre-1.0:** the public API may still change between minor versions — see [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 ## How it works
 
