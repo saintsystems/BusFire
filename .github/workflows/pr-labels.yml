@@ -1,0 +1,32 @@
+name: PR labels
+
+# Auto-labels each PR from its Conventional Commit title so .github/release.yml can group the
+# release notes. Exactly one type label is kept (the others are removed if the title changes).
+on:
+  pull_request_target:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  label:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Label from Conventional Commit title
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          NUM: ${{ github.event.pull_request.number }}
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          case "$TITLE" in
+            feat*|feature*) label=feature ;;
+            fix*)           label=fix ;;
+            docs*)          label=documentation ;;
+            *)              label=maintenance ;;
+          esac
+          for l in feature fix documentation maintenance; do
+            [ "$l" = "$label" ] || gh pr edit "$NUM" --repo "$REPO" --remove-label "$l" 2>/dev/null || true
+          done
+          gh pr edit "$NUM" --repo "$REPO" --add-label "$label"

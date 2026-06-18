@@ -1,0 +1,16 @@
+# Configures GitHub's auto-generated release notes (used by release.yml's `gh release create --generate-notes`).
+# PRs are auto-labeled from their Conventional Commit title by .github/workflows/pr-labels.yml.
+changelog:
+  exclude:
+    authors: [dependabot, github-actions]
+  categories:
+    - title: 🚀 Features
+      labels: [feature]
+    - title: 🐛 Fixes
+      labels: [fix]
+    - title: 📝 Documentation
+      labels: [documentation]
+    - title: 🧹 Maintenance
+      labels: [maintenance]
+    - title: Other Changes
+      labels: ["*"]
